@@ -113,6 +113,7 @@
 \dim_new:N \l__ffbd_width_dim
 \dim_new:N \l__ffbd_xsep_dim
 \dim_new:N \l__ffbd_ysep_dim
+\dim_new:N \l__ffbd_port_stub_dim
 \keys_define:nn {tikzffbd/env}{
   theme .tl_set:N=\l__ffbd_theme_tl,
   fill .bool_set:N=\l__ffbd_fill_bool,
@@ -123,6 +124,7 @@
   block-width .dim_set:N=\l__ffbd_width_dim,
   column-sep .dim_set:N=\l__ffbd_xsep_dim,
   row-sep .dim_set:N=\l__ffbd_ysep_dim,
+  port-stub .dim_set:N=\l__ffbd_port_stub_dim,
   font .choice:,
   font/sans .code:n={\tl_set:Nn \l__ffbd_font_tl {\sffamily\small}},
   font/serif .code:n={\tl_set:Nn \l__ffbd_font_tl {\rmfamily\small}},
@@ -141,7 +143,7 @@
 \cs_new_protected:Npn \__ffbd_defaults:{
   \keys_set:nn {tikzffbd/env}{
     theme=ocean,fill=true,wrap=true,scale-to-fit=true,debug=false,layout-debug=false,
-    max-columns=5,block-width=27mm,column-sep=36mm,row-sep=20mm,
+    max-columns=5,block-width=27mm,column-sep=36mm,row-sep=20mm,port-stub=6mm,
     font=sans,line-weight=thin,direction=right,annotations=below}
 }
 

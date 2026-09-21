@@ -66,7 +66,8 @@ and `monochrome`:
   line-weight=thin,
   direction=right,
   wrap=true,
-  max-columns=5
+  max-columns=5,
+  port-stub=6mm
 ]
 ```
 
@@ -81,6 +82,8 @@ with the same clear gap to neighboring blocks. Parallel lanes expand to fit tall
 text and annotations. `column-sep` (default `36mm`) and `row-sep` (default `20mm`)
 are nominal pitches; the engine increases them when the measured content needs
 more room and keeps at least `6mm` of clear space between adjacent blocks.
+`port-stub` (default `6mm`) sets the minimum straight run where an arrow
+leaves or enters a block before its first or final bend.
 
 Declaration order resolves lane ordering. With wrapping enabled, stages snake
 after `max-columns`; **logical connectors count as stages**. Wrapped bands have

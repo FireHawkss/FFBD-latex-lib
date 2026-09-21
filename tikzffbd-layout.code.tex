@@ -15,6 +15,7 @@
 \prop_new:N \l__ffbd_band_offset_prop
 \prop_new:N \l__ffbd_stage_size_prop
 \prop_new:N \l__ffbd_stage_pos_prop
+\prop_new:N \l__ffbd_stage_turn_prop
 \seq_new:N \l__ffbd_obstacles_seq
 \seq_new:N \l__ffbd_segments_seq
 \seq_new:N \l__ffbd_labels_seq
@@ -111,6 +112,7 @@
     \seq_map_inline:Nn \l__ffbd_edges_seq {\__ffbd_relax:nn ####1}}
   \prop_clear:N \l__ffbd_count_prop \prop_clear:N \l__ffbd_used_prop
   \prop_clear:N \l__ffbd_stage_size_prop \prop_clear:N \l__ffbd_stage_pos_prop
+  \prop_clear:N \l__ffbd_stage_turn_prop
   \int_zero:N \l__ffbd_lanes_int \int_zero:N \l__ffbd_maxrank_int
   \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
     \fp_set:Nn \l__ffbd_lane_fp {\dim_to_fp:n{\l__ffbd_ysep_dim}}
@@ -168,6 +170,22 @@
     \prop_get:NVNTF \l__ffbd_stage_size_prop \l_tmpa_tl \l_tmpb_tl {}{\tl_set:Nn\l_tmpb_tl{0}}
     \prop_put:NVx \l__ffbd_stage_size_prop \l_tmpa_tl {\fp_eval:n{max(\l_tmpb_tl,\l__ffbd_extent_fp)}}
   }
+  % Parallel lanes necessarily bend as they enter or leave their stage.
+  % Mark the corresponding physical column/row so its adjacent gaps can hold
+  % a full port stub at both ends without overlapping or doubling back.
+  \seq_map_inline:Nn \l__ffbd_nodes_seq {
+    \tl_set:Nx \l_tmpa_tl {\prop_item:Nn\l__ffbd_rank_prop{##1}}
+    \int_compare:nNnT {\prop_item:NV\l__ffbd_count_prop\l_tmpa_tl}>{1}{
+      \int_set:Nn \l__ffbd_stage_int {\l_tmpa_tl}
+      \bool_if:NT \l__ffbd_wrap_bool {
+        \int_set:Nn \l__ffbd_stage_int {\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
+        \int_if_odd:nT {\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
+          {\int_set:Nn\l__ffbd_stage_int{\l__ffbd_columns_int-1-\l__ffbd_stage_int}}
+      }
+      \tl_set:Nx\l_tmpb_tl{\int_use:N\l__ffbd_stage_int}
+      \prop_put:NVn\l__ffbd_stage_turn_prop\l_tmpb_tl{1}
+    }
+  }
   \int_compare:nNnT {\l__ffbd_maxrank_int} > {\seq_count:N\l__ffbd_nodes_seq-1}
     {\msg_error:nn{tikzffbd}{cycle}}
   \fp_zero:N \l__ffbd_cursor_fp
@@ -175,7 +193,12 @@
     \prop_get:NnNT \l__ffbd_stage_size_prop {##1}\l_tmpa_tl {
       \fp_add:Nn\l__ffbd_cursor_fp{\l_tmpa_tl/2}
       \prop_put:Nnx\l__ffbd_stage_pos_prop{##1}{\fp_use:N\l__ffbd_cursor_fp}
-      \fp_add:Nn\l__ffbd_cursor_fp{\l_tmpa_tl/2+\l__ffbd_gap_fp}
+      \fp_set_eq:NN\l_tmpa_fp\l__ffbd_gap_fp
+      \prop_if_in:NnT\l__ffbd_stage_turn_prop{##1}
+        {\fp_set:Nn\l_tmpa_fp{max(\l_tmpa_fp,2*\dim_to_fp:n{\l__ffbd_port_stub_dim})}}
+      \prop_if_in:NeT\l__ffbd_stage_turn_prop{\int_eval:n{##1+1}}
+        {\fp_set:Nn\l_tmpa_fp{max(\l_tmpa_fp,2*\dim_to_fp:n{\l__ffbd_port_stub_dim})}}
+      \fp_add:Nn\l__ffbd_cursor_fp{\l_tmpa_tl/2+\l_tmpa_fp}
     }
   }
   \seq_map_inline:Nn \l__ffbd_nodes_seq {
@@ -291,6 +314,38 @@
     \l__ffbd_y_fp-\l__ffbd_h_fp/2-\l__ffbd_clearance_fp<#5}
     {\bool_set_false:N\l__ffbd_clear_bool}
 }
+% An annotation may move to another candidate position, so keep it out of
+% every node's reserved straight approach/departure corridor.  The router can
+% then honor port-stub without discovering too late that a note occupies it.
+\cs_new_protected:Npn \__ffbd_port_corridor_check:n #1{
+  \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+    \__ffbd_rect_check:nnnnn{#1-left}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}-\prop_item:Nn\l__ffbd_w_prop{#1}/2
+        -\dim_to_fp:n{\l__ffbd_port_stub_dim}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}-\prop_item:Nn\l__ffbd_w_prop{#1}/2}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}}
+    \__ffbd_rect_check:nnnnn{#1-right}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}+\prop_item:Nn\l__ffbd_w_prop{#1}/2}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}+\prop_item:Nn\l__ffbd_w_prop{#1}/2
+        +\dim_to_fp:n{\l__ffbd_port_stub_dim}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}}
+  }{
+    \__ffbd_rect_check:nnnnn{#1-above}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}+\prop_item:Nn\l__ffbd_h_prop{#1}/2}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}+\prop_item:Nn\l__ffbd_h_prop{#1}/2
+        +\dim_to_fp:n{\l__ffbd_port_stub_dim}}
+    \__ffbd_rect_check:nnnnn{#1-below}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}-\prop_item:Nn\l__ffbd_h_prop{#1}/2
+        -\dim_to_fp:n{\l__ffbd_port_stub_dim}}
+      {\prop_item:Nn\l__ffbd_x_prop{#1}}
+      {\prop_item:Nn\l__ffbd_y_prop{#1}-\prop_item:Nn\l__ffbd_h_prop{#1}/2}
+  }
+}
 \cs_new_protected:Npn \__ffbd_annotation_candidate:nn #1#2{
   \fp_set:Nn\l__ffbd_x_fp{\prop_item:Nn\l__ffbd_x_prop{#1}}
   \fp_set:Nn\l__ffbd_y_fp{\prop_item:Nn\l__ffbd_y_prop{#1}}
@@ -302,6 +357,7 @@
   }
   \bool_set_true:N\l__ffbd_clear_bool
   \seq_map_inline:Nn\l__ffbd_obstacles_seq{\__ffbd_rect_check:nnnnn ##1}
+  \seq_map_inline:Nn\l__ffbd_nodes_seq{\__ffbd_port_corridor_check:n{##1}}
   \bool_if:NT\l__ffbd_clear_bool{\bool_set_true:N\l__ffbd_found_bool}
 }
 \cs_new_protected:Npn \__ffbd_draw_annotation:nn #1#2{
@@ -424,11 +480,11 @@
           {\fp_set:Nn\l_tmpa_fp{1}}
         \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_y_prop{#1}}
         \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_x_prop{#1}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#1}/2}
-        \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}
+        \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
         \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
         \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_y_prop{#2}}
         \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_x_prop{#2}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}
-        \fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}
+        \fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
         \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp
       }
     }{
@@ -436,10 +492,10 @@
       \tl_if_blank:VTF\l__ffbd_saved_side_tl
         {\fp_sub:Nn\l__ffbd_bx_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}}
         {\fp_add:Nn\l__ffbd_bx_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}}
-      \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}
+      \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
       \tl_if_blank:VTF\l__ffbd_saved_side_tl
-        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp-\l_tmpa_fp*\dim_to_fp:n{2.5mm}}}
-        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}}
+        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp-\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
+        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
       \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
       \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp
     }
@@ -460,6 +516,31 @@
       \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
     }
   }
+  % A straight edge has no bend to protect.  If the gap is shorter than two
+  % full stubs, meet at its midpoint instead of making the path double back.
+  \tl_if_blank:VT\l__ffbd_saved_side_tl{
+    \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+      \fp_compare:nT{
+        abs(\l__ffbd_ay_fp-\l__ffbd_by_fp)<.01 &&
+        abs(\l__ffbd_bx_fp-\l__ffbd_ax_fp)
+          <2*\dim_to_fp:n{\l__ffbd_port_stub_dim}}{
+        \fp_set:Nn\l__ffbd_sx_fp{(\l__ffbd_ax_fp+\l__ffbd_bx_fp)/2}
+        \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_sx_fp
+        \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
+        \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp
+      }
+    }{
+      \fp_compare:nT{
+        abs(\l__ffbd_ax_fp-\l__ffbd_bx_fp)<.01 &&
+        abs(\l__ffbd_by_fp-\l__ffbd_ay_fp)
+          <2*\dim_to_fp:n{\l__ffbd_port_stub_dim}}{
+        \fp_set:Nn\l__ffbd_sy_fp{(\l__ffbd_ay_fp+\l__ffbd_by_fp)/2}
+        \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_sy_fp
+        \fp_set_eq:NN\l__ffbd_sx_fp\l__ffbd_ax_fp
+        \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
+      }
+    }
+  }
 }
 \cs_new_protected:Npn \__ffbd_vertical_ports:nn #1#2{
   \fp_set:Nn\l_tmpa_fp{sign(\l__ffbd_by_fp-\l__ffbd_ay_fp)}
@@ -469,10 +550,10 @@
   \tl_if_blank:VTF\l__ffbd_saved_side_tl
     {\fp_sub:Nn\l__ffbd_by_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_h_prop{#2}/2}}
     {\fp_add:Nn\l__ffbd_by_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_h_prop{#2}/2}}
-  \fp_set:Nn\l__ffbd_sy_fp{\l__ffbd_ay_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}
+  \fp_set:Nn\l__ffbd_sy_fp{\l__ffbd_ay_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
   \tl_if_blank:VTF\l__ffbd_saved_side_tl
-    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp-\l_tmpa_fp*\dim_to_fp:n{2.5mm}}}
-    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}}
+    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp-\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
+    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
   \fp_set_eq:NN\l__ffbd_sx_fp\l__ffbd_ax_fp
   \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
 }

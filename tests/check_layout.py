@@ -20,6 +20,10 @@ def intersects(a, b, tolerance=0.05):
             and min(a[1], a[3]) < b[3] - tolerance)
 
 
+def segment_length(segment):
+    return abs(segment[2] - segment[0]) + abs(segment[3] - segment[1])
+
+
 def check(name, source, engine='pdflatex'):
     source = source.replace(r'\begin{ffbd}[', r'\begin{ffbd}[layout-debug=true,')
     source = source.replace(r'\begin{ffbd}' + '\n', r'\begin{ffbd}[layout-debug=true]' + '\n')
@@ -75,16 +79,23 @@ def main():
                 assert abs(y2-y1) < .02, 'basic row is not straight'
         if name == 'complex':
             bounds = dict(boxes)
+            minimum_stub = 6 * 72.27 / 25.4
             for target in ('safety', 'resources', 'schedule'):
                 route = [segment for ends, segment in segments
                          if ends == ['@c3', target]]
                 assert route, f'complex: missing wrapped split route to {target}'
                 assert abs(route[0][0] - bounds['@c3'][2]) < .05
+                assert segment_length(route[0]) >= minimum_stub - .05
                 assert route[0][2] > route[0][0], (
                     'complex: wrapped split must leave the AND connector on its right')
                 assert abs(route[-1][2] - bounds[target][2]) < .05
+                assert segment_length(route[-1]) >= minimum_stub - .05
                 assert route[-1][0] > route[-1][2], (
                     f'complex: wrapped split must enter {target} on its right')
+            feedback = [segment for ends, segment in segments
+                        if ends == ['rework', 'execute']]
+            assert segment_length(feedback[0]) >= minimum_stub - .05
+            assert segment_length(feedback[-1]) >= minimum_stub - .05
     specimen = (ROOT / 'examples/complex.tex').read_text()
     check('complex-unwrapped', specimen.replace('wrap=true', 'wrap=false'))
     check('complex-portrait', specimen.replace('landscape,margin', 'margin'))
@@ -122,6 +133,8 @@ def main():
         for columns in (2, 3, 5):
             check(f'parallel-{direction}-{columns}', document(parallel,
                   f'direction={direction},max-columns={columns},row-sep=12mm,column-sep=28mm'))
+    check('parallel-custom-stub', document(parallel,
+          'direction=right,max-columns=5,port-stub=9mm'))
     # Reused node IDs and different layout options must not leak between pictures.
     first = document(r'\start{s}{Start}\function{a}{Work}\finish{t}{End}'
                      r'\flow{s}{a}\flow{a}{t}', 'direction=down,annotations=right')
