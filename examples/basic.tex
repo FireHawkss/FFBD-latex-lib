@@ -1,0 +1,22 @@
+\documentclass[a4paper]{article}
+\usepackage[margin=20mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+
+\begin{document}
+\begin{ffbd}[theme=ocean]
+  \start{request}{Need identified}
+  \function{capture}{Capture request}
+  \function{validate}{Validate request}
+  \function{process}{Process request}
+  \finish{complete}{Outcome delivered}
+
+  \flow{request}{capture}
+  \flow{capture}{validate}
+  \flow{validate}{process}
+  \flow{process}{complete}
+
+  \precondition{capture}{Authorized user is available}
+  \timing{process}{Complete within 5 seconds}
+\end{ffbd}
+\end{document}

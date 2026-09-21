@@ -1,0 +1,43 @@
+\documentclass[a4paper]{article}
+\usepackage[landscape,margin=16mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+
+\begin{document}
+\begin{ffbd}[
+  theme=slate,
+  wrap=false,
+  annotations=below
+]
+  \start{start}{Situation begins}
+  \function{capture}{Capture observations}
+  \function{assess}{Assess situation}
+  \function{automatic}{Automatic analysis}
+  \function{manual}{Manual review}
+  \function{plan}{Prepare response}
+  \function{safety}{Establish safety controls}
+  \function{resources}{Allocate resources}
+  \function{schedule}{Confirm schedule}
+  \function[number=5.0]{execute}{Execute response}
+  \function{pass}{Accept result}
+  \function{rework}{Perform rework}
+  \function{escalate}{Escalate decision}
+  \function{report}{Record outcome}
+  \finish{end}{Situation resolved}
+
+  \flow{start}{capture}
+  \flow{capture}{assess}
+  \branch[or]{assess}{automatic={Auto},manual={Review}}
+  \join[or]{automatic,manual}{plan}
+  \branch[and]{plan}{safety,resources,schedule}
+  \join[and]{safety,resources,schedule}{execute}
+  \branch[or]{execute}{pass,rework,escalate}
+  \join[or]{pass,rework,escalate}{report}
+  \flow{report}{end}
+  \loopflow[condition={Repeat},side=below]{rework}{execute}
+
+  \precondition{capture}{System is operational}
+  \timing{execute}{Within the allocated response window}
+  \note{escalate}{Requires accountable authority}
+\end{ffbd}
+\end{document}

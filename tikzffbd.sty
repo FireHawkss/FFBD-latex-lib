@@ -1,0 +1,571 @@
+%% tikzffbd.sty -- Functional Flow Block Diagrams without low-level TikZ
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesExplPackage{tikzffbd}{2026-09-21}{0.1.0}
+  {Automatic, polished Functional Flow Block Diagrams}
+
+\ExplSyntaxOff
+\RequirePackage{tikz}
+\RequirePackage{graphicx}
+\usetikzlibrary{arrows.meta,calc,positioning}
+\ExplSyntaxOn
+
+% Messages
+\msg_new:nnn {tikzffbd}{duplicate}{Function~identifier~'#1'~is~already~declared.}
+\msg_new:nnn {tikzffbd}{unknown}{Function~identifier~'#1'~is~not~declared.}
+\msg_new:nnn {tikzffbd}{bad-id}
+  {Identifier~'#1'~is~invalid.~Use~letters,~digits,~colons,~or~hyphens.}
+\msg_new:nnn {tikzffbd}{theme}{Theme~'#1'~is~unknown;~using~ocean.}
+\msg_new:nnn {tikzffbd}{tall}
+  {Diagram~height~#1~exceeds~80~percent~of~the~text~height.}
+
+% Palettes
+\definecolor{ffbdOceanFunction}{HTML}{DCEAF4}
+\definecolor{ffbdOceanFunctionLine}{HTML}{315B73}
+\definecolor{ffbdOceanAnd}{HTML}{9ED9CC}
+\definecolor{ffbdOceanAndLine}{HTML}{176B62}
+\definecolor{ffbdOceanOr}{HTML}{F3CE78}
+\definecolor{ffbdOceanOrLine}{HTML}{956B10}
+\definecolor{ffbdOceanTerminal}{HTML}{CAD7E0}
+\definecolor{ffbdInk}{HTML}{20313A}
+\definecolor{ffbdSlateFunction}{HTML}{DDE3EA}
+\definecolor{ffbdSlateFunctionLine}{HTML}{465767}
+\definecolor{ffbdSlateAnd}{HTML}{AFC8C0}
+\definecolor{ffbdSlateAndLine}{HTML}{416B61}
+\definecolor{ffbdSlateOr}{HTML}{DDB18E}
+\definecolor{ffbdSlateOrLine}{HTML}{8A5432}
+\definecolor{ffbdForestFunction}{HTML}{DDE9DB}
+\definecolor{ffbdForestFunctionLine}{HTML}{3E6548}
+\definecolor{ffbdForestAnd}{HTML}{A8D5BA}
+\definecolor{ffbdForestAndLine}{HTML}{2D704A}
+\definecolor{ffbdForestOr}{HTML}{E8C978}
+\definecolor{ffbdForestOrLine}{HTML}{8A6817}
+\definecolor{ffbdPlumFunction}{HTML}{E8DFEC}
+\definecolor{ffbdPlumFunctionLine}{HTML}{674C70}
+\definecolor{ffbdPlumAnd}{HTML}{B8D4B0}
+\definecolor{ffbdPlumAndLine}{HTML}{4F7546}
+\definecolor{ffbdPlumOr}{HTML}{EDC882}
+\definecolor{ffbdPlumOrLine}{HTML}{8C671E}
+\definecolor{ffbdMonoLight}{gray}{.92}
+\definecolor{ffbdMonoMid}{gray}{.76}
+\definecolor{ffbdMonoDark}{gray}{.25}
+
+\tl_new:N \l__ffbd_function_fill_tl
+\tl_new:N \l__ffbd_function_draw_tl
+\tl_new:N \l__ffbd_and_fill_tl
+\tl_new:N \l__ffbd_and_draw_tl
+\tl_new:N \l__ffbd_or_fill_tl
+\tl_new:N \l__ffbd_or_draw_tl
+\tl_new:N \l__ffbd_terminal_fill_tl
+\tl_new:N \l__ffbd_annotation_fill_tl
+\tl_new:N \l__ffbd_ink_tl
+\keys_define:nn {tikzffbd/theme}{
+  function-fill .tl_set:N=\l__ffbd_function_fill_tl,
+  function-draw .tl_set:N=\l__ffbd_function_draw_tl,
+  and-fill .tl_set:N=\l__ffbd_and_fill_tl,
+  and-draw .tl_set:N=\l__ffbd_and_draw_tl,
+  or-fill .tl_set:N=\l__ffbd_or_fill_tl,
+  or-draw .tl_set:N=\l__ffbd_or_draw_tl,
+  terminal-fill .tl_set:N=\l__ffbd_terminal_fill_tl,
+  annotation-fill .tl_set:N=\l__ffbd_annotation_fill_tl,
+  ink .tl_set:N=\l__ffbd_ink_tl
+}
+\NewDocumentCommand \ffbdDeclareTheme {mm}{
+  \cs_gset:cpn {__ffbd_theme_#1}
+    {\keys_set:nn {tikzffbd/theme}{#2}}
+}
+\ffbdDeclareTheme{ocean}{
+  function-fill=ffbdOceanFunction,function-draw=ffbdOceanFunctionLine,
+  and-fill=ffbdOceanAnd,and-draw=ffbdOceanAndLine,
+  or-fill=ffbdOceanOr,or-draw=ffbdOceanOrLine,
+  terminal-fill=ffbdOceanTerminal,annotation-fill=gray!5,ink=ffbdInk}
+\ffbdDeclareTheme{slate}{
+  function-fill=ffbdSlateFunction,function-draw=ffbdSlateFunctionLine,
+  and-fill=ffbdSlateAnd,and-draw=ffbdSlateAndLine,
+  or-fill=ffbdSlateOr,or-draw=ffbdSlateOrLine,
+  terminal-fill=ffbdSlateFunction,annotation-fill=gray!5,ink=ffbdInk}
+\ffbdDeclareTheme{forest}{
+  function-fill=ffbdForestFunction,function-draw=ffbdForestFunctionLine,
+  and-fill=ffbdForestAnd,and-draw=ffbdForestAndLine,
+  or-fill=ffbdForestOr,or-draw=ffbdForestOrLine,
+  terminal-fill=ffbdForestFunction,annotation-fill=gray!5,ink=ffbdInk}
+\ffbdDeclareTheme{plum}{
+  function-fill=ffbdPlumFunction,function-draw=ffbdPlumFunctionLine,
+  and-fill=ffbdPlumAnd,and-draw=ffbdPlumAndLine,
+  or-fill=ffbdPlumOr,or-draw=ffbdPlumOrLine,
+  terminal-fill=ffbdPlumFunction,annotation-fill=gray!5,ink=ffbdInk}
+\ffbdDeclareTheme{monochrome}{
+  function-fill=ffbdMonoLight,function-draw=ffbdMonoDark,
+  and-fill=ffbdMonoMid,and-draw=black,
+  or-fill=white,or-draw=black,
+  terminal-fill=ffbdMonoMid,annotation-fill=white,ink=black}
+
+% Diagram options
+\tl_new:N \l__ffbd_theme_tl
+\tl_new:N \l__ffbd_font_tl
+\tl_new:N \l__ffbd_weight_tl
+\tl_new:N \l__ffbd_direction_tl
+\tl_new:N \l__ffbd_annotation_place_tl
+\bool_new:N \l__ffbd_fill_bool
+\bool_new:N \l__ffbd_wrap_bool
+\bool_new:N \l__ffbd_scale_bool
+\bool_new:N \l__ffbd_debug_bool
+\int_new:N \l__ffbd_columns_int
+\dim_new:N \l__ffbd_width_dim
+\dim_new:N \l__ffbd_xsep_dim
+\dim_new:N \l__ffbd_ysep_dim
+\keys_define:nn {tikzffbd/env}{
+  theme .tl_set:N=\l__ffbd_theme_tl,
+  fill .bool_set:N=\l__ffbd_fill_bool,
+  wrap .bool_set:N=\l__ffbd_wrap_bool,
+  scale-to-fit .bool_set:N=\l__ffbd_scale_bool,
+  debug .bool_set:N=\l__ffbd_debug_bool,
+  max-columns .int_set:N=\l__ffbd_columns_int,
+  block-width .dim_set:N=\l__ffbd_width_dim,
+  column-sep .dim_set:N=\l__ffbd_xsep_dim,
+  row-sep .dim_set:N=\l__ffbd_ysep_dim,
+  font .choice:,
+  font/sans .code:n={\tl_set:Nn \l__ffbd_font_tl {\sffamily\small}},
+  font/serif .code:n={\tl_set:Nn \l__ffbd_font_tl {\rmfamily\small}},
+  line-weight .choice:,
+  line-weight/thin .code:n={\tl_set:Nn \l__ffbd_weight_tl {.75pt}},
+  line-weight/heavy .code:n={\tl_set:Nn \l__ffbd_weight_tl {1.25pt}},
+  direction .choice:,
+  direction/right .code:n={\tl_set:Nn \l__ffbd_direction_tl {right}},
+  direction/down .code:n={\tl_set:Nn \l__ffbd_direction_tl {down}},
+  annotations .choice:,
+  annotations/below .code:n={\tl_set:Nn \l__ffbd_annotation_place_tl {below}},
+  annotations/above .code:n={\tl_set:Nn \l__ffbd_annotation_place_tl {above}},
+  annotations/left .code:n={\tl_set:Nn \l__ffbd_annotation_place_tl {left}},
+  annotations/right .code:n={\tl_set:Nn \l__ffbd_annotation_place_tl {right}}
+}
+\cs_new_protected:Npn \__ffbd_defaults:{
+  \keys_set:nn {tikzffbd/env}{
+    theme=ocean,fill=true,wrap=true,scale-to-fit=true,debug=false,
+    max-columns=5,block-width=27mm,column-sep=36mm,row-sep=20mm,
+    font=sans,line-weight=thin,direction=right,annotations=below}
+}
+
+% Per-environment graph data
+\seq_new:N \l__ffbd_nodes_seq
+\seq_new:N \l__ffbd_edges_seq
+\seq_new:N \l__ffbd_flows_seq
+\seq_new:N \l__ffbd_branches_seq
+\seq_new:N \l__ffbd_joins_seq
+\seq_new:N \l__ffbd_loops_seq
+\prop_new:N \l__ffbd_label_prop
+\prop_new:N \l__ffbd_number_prop
+\prop_new:N \l__ffbd_type_prop
+\prop_new:N \l__ffbd_rank_prop
+\prop_new:N \l__ffbd_count_prop
+\prop_new:N \l__ffbd_used_prop
+\prop_new:N \l__ffbd_x_prop
+\prop_new:N \l__ffbd_y_prop
+\prop_new:N \l__ffbd_annotation_prop
+\int_new:N \l__ffbd_number_int
+\int_new:N \l__ffbd_connector_int
+\int_new:N \l__ffbd_lanes_int
+\box_new:N \l__ffbd_box
+\cs_new_protected:Npn \__ffbd_clear:{
+  \seq_clear:N \l__ffbd_nodes_seq
+  \seq_clear:N \l__ffbd_edges_seq
+  \seq_clear:N \l__ffbd_flows_seq
+  \seq_clear:N \l__ffbd_branches_seq
+  \seq_clear:N \l__ffbd_joins_seq
+  \seq_clear:N \l__ffbd_loops_seq
+  \prop_clear:N \l__ffbd_label_prop
+  \prop_clear:N \l__ffbd_number_prop
+  \prop_clear:N \l__ffbd_type_prop
+  \prop_clear:N \l__ffbd_rank_prop
+  \prop_clear:N \l__ffbd_annotation_prop
+  \int_zero:N \l__ffbd_number_int
+  \int_zero:N \l__ffbd_connector_int
+}
+
+% Nodes
+\tl_new:N \l__ffbd_requested_number_tl
+\keys_define:nn {tikzffbd/function}{
+  number .tl_set:N=\l__ffbd_requested_number_tl}
+\cs_new_protected:Npn \__ffbd_node:nnnn #1#2#3#4{
+  \prop_if_in:NnTF \l__ffbd_label_prop {#1}
+    {\msg_error:nnn {tikzffbd}{duplicate}{#1}}
+    {
+      \regex_match:nnF {\A[-A-Za-z0-9:]+\Z}{#1}
+        {\msg_error:nnn {tikzffbd}{bad-id}{#1}}
+      \tl_clear:N \l__ffbd_requested_number_tl
+      \keys_set:nn {tikzffbd/function}{#4}
+      \tl_if_blank:VTF \l__ffbd_requested_number_tl
+        {
+          \int_incr:N \l__ffbd_number_int
+          \tl_set:Nx \l__ffbd_requested_number_tl
+            {\int_use:N \l__ffbd_number_int}
+        }
+        {
+          \str_if_eq:VnT \l__ffbd_requested_number_tl {none}
+            {\tl_clear:N \l__ffbd_requested_number_tl}
+        }
+      \seq_put_right:Nn \l__ffbd_nodes_seq {#1}
+      \prop_put:Nnn \l__ffbd_label_prop {#1}{#2}
+      \prop_put:NnV \l__ffbd_number_prop {#1}\l__ffbd_requested_number_tl
+      \prop_put:Nnn \l__ffbd_type_prop {#1}{#3}
+      \prop_put:Nnn \l__ffbd_rank_prop {#1}{0}
+    }
+}
+\cs_new_protected:Npn \__ffbd_require:n #1{
+  \prop_if_in:NnF \l__ffbd_label_prop {#1}
+    {\msg_error:nnn {tikzffbd}{unknown}{#1}}
+}
+\cs_new_protected:Npn \__ffbd_edge:nn #1#2{
+  \__ffbd_require:n {#1}\__ffbd_require:n {#2}
+  \seq_put_right:Nn \l__ffbd_edges_seq {{#1}{#2}}
+}
+\NewDocumentCommand \ffbdFunction {O{}mm}
+  {\__ffbd_node:nnnn {#2}{#3}{function}{#1}}
+\NewDocumentCommand \ffbdStart {O{}mm}
+  {\__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}}
+\NewDocumentCommand \ffbdFinish {O{}mm}
+  {\__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}}
+
+% Relationships
+\tl_new:N \l__ffbd_edge_label_tl
+\keys_define:nn {tikzffbd/flow}{
+  label .tl_set:N=\l__ffbd_edge_label_tl,
+  condition .tl_set:N=\l__ffbd_edge_label_tl}
+\NewDocumentCommand \ffbdFlow {O{}mm}{
+  \tl_clear:N \l__ffbd_edge_label_tl
+  \keys_set:nn {tikzffbd/flow}{#1}
+  \__ffbd_edge:nn {#2}{#3}
+  \seq_put_right:Nx \l__ffbd_flows_seq
+    {{#2}{#3}{\exp_not:V \l__ffbd_edge_label_tl}}
+}
+\tl_new:N \l__ffbd_source_tl
+\cs_new_protected:Npn \__ffbd_branch_plain:n #1{
+  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n {#1}}
+  \exp_args:NVV \__ffbd_edge:nn \l__ffbd_source_tl \l_tmpa_tl
+}
+\cs_new_protected:Npn \__ffbd_branch_labeled:nn #1#2
+  {\__ffbd_branch_plain:n {#1}}
+\NewDocumentCommand \ffbdBranch {O{and}mm}{
+  \tl_set:Nn \l__ffbd_source_tl {#2}
+  \keyval_parse:NNn \__ffbd_branch_plain:n \__ffbd_branch_labeled:nn {#3}
+  \seq_put_right:Nn \l__ffbd_branches_seq {{#1}{#2}{#3}}
+}
+\NewDocumentCommand \ffbdJoin {O{and}mm}{
+  \clist_map_inline:nn {#2}{\__ffbd_edge:nn {##1}{#3}}
+  \seq_put_right:Nn \l__ffbd_joins_seq {{#1}{#2}{#3}}
+}
+\tl_new:N \l__ffbd_loop_label_tl
+\tl_new:N \l__ffbd_loop_side_tl
+\keys_define:nn {tikzffbd/loop}{
+  condition .tl_set:N=\l__ffbd_loop_label_tl,
+  label .tl_set:N=\l__ffbd_loop_label_tl,
+  side .choice:,
+  side/above .code:n={\tl_set:Nn \l__ffbd_loop_side_tl {above}},
+  side/below .code:n={\tl_set:Nn \l__ffbd_loop_side_tl {below}}}
+\NewDocumentCommand \ffbdLoopFlow {O{}mm}{
+  \__ffbd_require:n {#2}\__ffbd_require:n {#3}
+  \tl_clear:N \l__ffbd_loop_label_tl
+  \tl_set:Nn \l__ffbd_loop_side_tl {above}
+  \keys_set:nn {tikzffbd/loop}{#1}
+  \seq_put_right:Nx \l__ffbd_loops_seq
+    {{#2}{#3}{\exp_not:V\l__ffbd_loop_label_tl}
+      {\exp_not:V\l__ffbd_loop_side_tl}}
+}
+
+% External annotations
+\cs_new_protected:Npn \__ffbd_annotate:nnn #1#2#3{
+  \__ffbd_require:n {#2}
+  \prop_get:NnNTF \l__ffbd_annotation_prop {#2}\l_tmpa_tl
+    {\tl_put_right:Nn \l_tmpa_tl {\\[1pt]\textbf{#1:}~#3}}
+    {\tl_set:Nn \l_tmpa_tl {\textbf{#1:}~#3}}
+  \prop_put:NnV \l__ffbd_annotation_prop {#2}\l_tmpa_tl
+}
+\NewDocumentCommand \ffbdPrecondition {mm}
+  {\__ffbd_annotate:nnn {Pre}{#1}{#2}}
+\NewDocumentCommand \ffbdTiming {mm}
+  {\__ffbd_annotate:nnn {Time}{#1}{#2}}
+\NewDocumentCommand \ffbdNote {mm}
+  {\__ffbd_annotate:nnn {Note}{#1}{#2}}
+\NewDocumentCommand \ffbdAnnotation {O{Info}mm}
+  {\__ffbd_annotate:nnn {#1}{#2}{#3}}
+
+% Longest-path layered layout. Loop edges intentionally do not affect rank.
+\cs_new_protected:Npn \__ffbd_relax:nn #1#2{
+  \prop_get:NnN \l__ffbd_rank_prop {#1}\l_tmpa_tl
+  \prop_get:NnN \l__ffbd_rank_prop {#2}\l_tmpb_tl
+  \int_compare:nNnT {\l_tmpb_tl} < {\l_tmpa_tl+1}
+    {\prop_put:Nnx \l__ffbd_rank_prop {#2}{\int_eval:n{\l_tmpa_tl+1}}}
+}
+\cs_new_protected:Npn \__ffbd_layout:{
+  \int_step_inline:nn {\seq_count:N\l__ffbd_nodes_seq}{
+    \seq_map_inline:Nn \l__ffbd_edges_seq {\__ffbd_relax:nn ####1}}
+  \prop_clear:N \l__ffbd_count_prop
+  \int_zero:N \l__ffbd_lanes_int
+  \seq_map_inline:Nn \l__ffbd_nodes_seq {
+    \prop_get:NnN \l__ffbd_rank_prop {##1}\l_tmpa_tl
+    \prop_get:NVNTF \l__ffbd_count_prop \l_tmpa_tl \l_tmpb_tl
+      {\prop_put:NVx \l__ffbd_count_prop \l_tmpa_tl
+        {\int_eval:n{\l_tmpb_tl+1}}}
+      {\prop_put:NVn \l__ffbd_count_prop \l_tmpa_tl {1}}
+  }
+  \prop_map_inline:Nn \l__ffbd_count_prop
+    {\int_set:Nn \l__ffbd_lanes_int {\int_max:nn{\l__ffbd_lanes_int}{##2}}}
+  \prop_clear:N \l__ffbd_used_prop
+  \seq_map_inline:Nn \l__ffbd_nodes_seq {
+    \prop_get:NnN \l__ffbd_rank_prop {##1}\l_tmpa_tl
+    \prop_get:NVN \l__ffbd_count_prop \l_tmpa_tl \l_tmpb_tl
+    \prop_get:NVNTF \l__ffbd_used_prop \l_tmpa_tl \l_tmpc_tl
+      {}{\tl_set:Nn \l_tmpc_tl {0}}
+    \bool_if:NTF \l__ffbd_wrap_bool {
+      \int_set:Nn \l_tmpa_int
+        {\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
+      \int_set:Nn \l_tmpb_int
+        {\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
+      \int_if_odd:nT {\l_tmpa_int}
+        {\int_set:Nn \l_tmpb_int
+          {\l__ffbd_columns_int-1-\l_tmpb_int}}
+    }{
+      \int_zero:N \l_tmpa_int
+      \int_set:Nn \l_tmpb_int {\l_tmpa_tl}
+    }
+    \fp_set:Nn \l_tmpa_fp {(\l_tmpb_tl-1)/2-\l_tmpc_tl}
+    \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
+      \prop_put:Nnx \l__ffbd_x_prop {##1}{\int_use:N\l_tmpb_int}
+      \prop_put:Nnx \l__ffbd_y_prop {##1}
+        {\fp_eval:n{\l_tmpa_fp-\l_tmpa_int*(\l__ffbd_lanes_int+2.5)}}
+    }{
+      \prop_put:Nnx \l__ffbd_x_prop {##1}
+        {\fp_eval:n{\l_tmpa_fp+\l_tmpa_int*(\l__ffbd_lanes_int+2.5)}}
+      \prop_put:Nnx \l__ffbd_y_prop {##1}{\int_eval:n{-\l_tmpb_int}}
+    }
+    \prop_put:NVx \l__ffbd_used_prop \l_tmpa_tl
+      {\int_eval:n{\l_tmpc_tl+1}}
+  }
+}
+
+% Drawing
+\cs_new_protected:Npn \__ffbd_styles:{
+  \cs_if_exist:cTF {__ffbd_theme_\l__ffbd_theme_tl}
+    {\use:c {__ffbd_theme_\l__ffbd_theme_tl}}
+    {\msg_warning:nnV {tikzffbd}{theme}\l__ffbd_theme_tl
+      \use:c {__ffbd_theme_ocean}}
+  \tikzset{
+    ffbd/base/.style={
+      draw=\l__ffbd_function_draw_tl,text=\l__ffbd_ink_tl,
+      line~width=\l__ffbd_weight_tl,minimum~width=\l__ffbd_width_dim,
+      minimum~height=11mm,text~width=\dim_eval:n{\l__ffbd_width_dim-4mm},
+      align=center,inner~sep=2mm,rounded~corners=2.2pt,font=\l__ffbd_font_tl},
+    ffbd/function/.style={ffbd/base},
+    ffbd/terminal/.style={ffbd/base,rounded~corners=6pt},
+    ffbd/and/.style={
+      draw=\l__ffbd_and_draw_tl,text=\l__ffbd_ink_tl,
+      line~width=\l__ffbd_weight_tl,rounded~corners=2pt,
+      minimum~width=9mm,minimum~height=6mm,inner~sep=1mm,
+      font=\sffamily\bfseries\scriptsize},
+    ffbd/or/.style={
+      draw=\l__ffbd_or_draw_tl,text=\l__ffbd_ink_tl,
+      line~width=\l__ffbd_weight_tl,rounded~corners=2pt,
+      minimum~width=9mm,minimum~height=6mm,inner~sep=1mm,
+      font=\sffamily\bfseries\scriptsize},
+    ffbd/flow/.style={
+      draw=\l__ffbd_ink_tl,line~width=\l__ffbd_weight_tl,
+      -{Latex[length=2.2mm,width=1.5mm]},rounded~corners=2pt},
+    ffbd/edge-label/.style={
+      fill=white,fill~opacity=.88,text~opacity=1,inner~sep=1.2pt,
+      rounded~corners=1pt,font=\sffamily\scriptsize,text=\l__ffbd_ink_tl},
+    ffbd/annotation/.style={
+      draw=\l__ffbd_function_draw_tl!55,text=\l__ffbd_ink_tl,dashed,
+      rounded~corners=1.5pt,line~width=.55pt,
+      text~width=\dim_eval:n{\l__ffbd_width_dim-2mm},
+      align=left,inner~sep=1.5mm,font=\sffamily\scriptsize}
+  }
+  \bool_if:NTF \l__ffbd_fill_bool {
+    \tikzset{
+      ffbd/function/.append~style={fill=\l__ffbd_function_fill_tl},
+      ffbd/terminal/.append~style={fill=\l__ffbd_terminal_fill_tl},
+      ffbd/and/.append~style={fill=\l__ffbd_and_fill_tl},
+      ffbd/or/.append~style={fill=\l__ffbd_or_fill_tl},
+      ffbd/annotation/.append~style={fill=\l__ffbd_annotation_fill_tl}}
+  }{
+    \tikzset{
+      ffbd/function/.append~style={fill=none},
+      ffbd/terminal/.append~style={fill=none},
+      ffbd/and/.append~style={fill=none},
+      ffbd/or/.append~style={fill=none},
+      ffbd/annotation/.append~style={fill=none}}
+  }
+}
+\cs_new_protected:Npn \__ffbd_draw_node:n #1{
+  \prop_get:NnN \l__ffbd_x_prop {#1}\l_tmpa_tl
+  \prop_get:NnN \l__ffbd_y_prop {#1}\l_tmpb_tl
+  \prop_get:NnN \l__ffbd_type_prop {#1}\l_tmpc_tl
+  \prop_get:NnN \l__ffbd_number_prop {#1}\l_tmpd_tl
+  \prop_get:NnN \l__ffbd_label_prop {#1}\l_tmpe_tl
+  \node[ffbd/\l_tmpc_tl] (ffbd-#1) at (\l_tmpa_tl,\l_tmpb_tl) {
+    \tl_if_blank:VF \l_tmpd_tl
+      {{\bfseries\scriptsize\l_tmpd_tl}\\[-1pt]}
+    \l_tmpe_tl
+    \bool_if:NT \l__ffbd_debug_bool
+      {\\[-1pt]{\ttfamily\tiny #1}}
+  };
+}
+\cs_new_protected:Npn \__ffbd_draw_flow:nnn #1#2#3{
+  \tl_if_blank:nTF {#3}{
+    \draw[ffbd/flow] (ffbd-#1) -- (ffbd-#2);
+  }{
+    \draw[ffbd/flow] (ffbd-#1) --
+      node[ffbd/edge-label]{#3} (ffbd-#2);
+  }
+}
+\tl_new:N \l__ffbd_first_tl
+\tl_new:N \l__ffbd_connector_tl
+\cs_new_protected:Npn \__ffbd_first_plain:n #1{
+  \tl_if_blank:VT \l__ffbd_first_tl
+    {\tl_set:Nx \l__ffbd_first_tl {\tl_trim_spaces:n{#1}}}
+}
+\cs_new_protected:Npn \__ffbd_first_labeled:nn #1#2
+  {\__ffbd_first_plain:n {#1}}
+\cs_new_protected:Npn \__ffbd_out_plain:n #1{
+  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n{#1}}
+  \draw[ffbd/flow] (\l__ffbd_connector_tl) -- (ffbd-\l_tmpa_tl);
+}
+\cs_new_protected:Npn \__ffbd_out_labeled:nn #1#2{
+  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n{#1}}
+  \draw[ffbd/flow] (\l__ffbd_connector_tl) --
+    node[ffbd/edge-label]{#2} (ffbd-\l_tmpa_tl);
+}
+\cs_new_protected:Npn \__ffbd_draw_branch:nnn #1#2#3{
+  \int_incr:N \l__ffbd_connector_int
+  \tl_clear:N \l__ffbd_first_tl
+  \keyval_parse:NNn \__ffbd_first_plain:n \__ffbd_first_labeled:nn {#3}
+  \prop_get:NnN \l__ffbd_x_prop {#2}\l_tmpa_tl
+  \prop_get:NnN \l__ffbd_y_prop {#2}\l_tmpb_tl
+  \prop_get:NVN \l__ffbd_x_prop \l__ffbd_first_tl \l_tmpc_tl
+  \prop_get:NVN \l__ffbd_y_prop \l__ffbd_first_tl \l_tmpd_tl
+  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
+    \fp_compare:nNnTF {\l_tmpa_tl} = {\l_tmpc_tl}{
+      \tl_set_eq:NN \l_tmpe_tl \l_tmpa_tl
+      \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
+    }{
+      \tl_set:Nx \l_tmpe_tl {\fp_eval:n{(\l_tmpa_tl+\l_tmpc_tl)/2}}
+      \tl_set_eq:NN \l_tmpf_tl \l_tmpb_tl
+    }
+  }{
+    \tl_set_eq:NN \l_tmpe_tl \l_tmpa_tl
+    \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
+  }
+  \tl_set:Nx \l__ffbd_connector_tl
+    {ffbd-c-\int_use:N\l__ffbd_connector_int}
+  \node[ffbd/#1] (\l__ffbd_connector_tl) at (\l_tmpe_tl,\l_tmpf_tl)
+    {\str_uppercase:n{#1}};
+  \draw[ffbd/flow] (ffbd-#2) -- (\l__ffbd_connector_tl);
+  \keyval_parse:NNn \__ffbd_out_plain:n \__ffbd_out_labeled:nn {#3}
+}
+\cs_new_protected:Npn \__ffbd_draw_join:nnn #1#2#3{
+  \int_incr:N \l__ffbd_connector_int
+  \clist_set:Nn \l_tmpa_clist {#2}
+  \tl_set:Nx \l__ffbd_first_tl {\clist_item:Nn\l_tmpa_clist{1}}
+  \prop_get:NVN \l__ffbd_x_prop \l__ffbd_first_tl \l_tmpa_tl
+  \prop_get:NVN \l__ffbd_y_prop \l__ffbd_first_tl \l_tmpb_tl
+  \prop_get:NnN \l__ffbd_x_prop {#3}\l_tmpc_tl
+  \prop_get:NnN \l__ffbd_y_prop {#3}\l_tmpd_tl
+  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
+    \fp_compare:nNnTF {\l_tmpa_tl} = {\l_tmpc_tl}{
+      \tl_set_eq:NN \l_tmpe_tl \l_tmpc_tl
+      \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
+    }{
+      \tl_set:Nx \l_tmpe_tl {\fp_eval:n{(\l_tmpa_tl+\l_tmpc_tl)/2}}
+      \tl_set_eq:NN \l_tmpf_tl \l_tmpd_tl
+    }
+  }{
+    \tl_set_eq:NN \l_tmpe_tl \l_tmpc_tl
+    \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
+  }
+  \tl_set:Nx \l__ffbd_connector_tl
+    {ffbd-c-\int_use:N\l__ffbd_connector_int}
+  \node[ffbd/#1] (\l__ffbd_connector_tl) at (\l_tmpe_tl,\l_tmpf_tl)
+    {\str_uppercase:n{#1}};
+  \clist_map_inline:Nn \l_tmpa_clist
+    {\draw[ffbd/flow] (ffbd-##1) -- (\l__ffbd_connector_tl);}
+  \draw[ffbd/flow] (\l__ffbd_connector_tl) -- (ffbd-#3);
+}
+\cs_new_protected:Npn \__ffbd_loop_path:nnnnn #1#2#3#4#5{
+  \tl_if_blank:nTF {#3}{
+    \draw[ffbd/flow] (ffbd-#1)
+      to[out=#4,in=#5,looseness=1.25] (ffbd-#2);
+  }{
+    \draw[ffbd/flow] (ffbd-#1)
+      to[out=#4,in=#5,looseness=1.25]
+      node[ffbd/edge-label]{#3} (ffbd-#2);
+  }
+}
+\cs_new_protected:Npn \__ffbd_draw_loop:nnnn #1#2#3#4{
+  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
+    \str_if_eq:nnTF {#4}{above}
+      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{90}{90}}
+      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{-90}{-90}}
+  }{
+    \str_if_eq:nnTF {#4}{above}
+      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{180}{180}}
+      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{0}{0}}
+  }
+}
+\cs_new_protected:Npn \__ffbd_draw_annotation:nn #1#2{
+  \node[ffbd/annotation,
+    \l__ffbd_annotation_place_tl=4mm~of~ffbd-#1]{#2};
+}
+
+\cs_new_protected:Npn \__ffbd_render:{
+  \__ffbd_layout:
+  \__ffbd_styles:
+  \hbox_set:Nn \l__ffbd_box {
+    \begin{tikzpicture}[
+      x=\l__ffbd_xsep_dim,y=\l__ffbd_ysep_dim,
+      baseline=(current~bounding~box.center)]
+      \seq_map_inline:Nn \l__ffbd_nodes_seq {\__ffbd_draw_node:n {##1}}
+      \seq_map_inline:Nn \l__ffbd_flows_seq {\__ffbd_draw_flow:nnn ##1}
+      \seq_map_inline:Nn \l__ffbd_branches_seq {\__ffbd_draw_branch:nnn ##1}
+      \seq_map_inline:Nn \l__ffbd_joins_seq {\__ffbd_draw_join:nnn ##1}
+      \seq_map_inline:Nn \l__ffbd_loops_seq {\__ffbd_draw_loop:nnnn ##1}
+      \prop_map_inline:Nn \l__ffbd_annotation_prop
+        {\__ffbd_draw_annotation:nn {##1}{##2}}
+    \end{tikzpicture}
+  }
+  \par\smallskip\noindent
+  \dim_set:Nn \l_tmpa_dim {\box_ht:N\l__ffbd_box+\box_dp:N\l__ffbd_box}
+  \dim_compare:nNnT {\l_tmpa_dim}>{.8\textheight}
+    {\msg_warning:nnx {tikzffbd}{tall}{\dim_use:N\l_tmpa_dim}}
+  \dim_compare:nNnTF {\box_wd:N\l__ffbd_box}>{\linewidth}{
+    \bool_if:NTF \l__ffbd_scale_bool
+      {\resizebox{\linewidth}{!}{\box_use:N\l__ffbd_box}}
+      {\box_use:N\l__ffbd_box}
+  }{
+    \box_use:N\l__ffbd_box
+  }
+  \par\smallskip
+}
+
+\cs_new_protected:Npn \__ffbd_begin:n #1{
+  \__ffbd_defaults:
+  \keys_set:nn {tikzffbd/env}{#1}
+  \int_compare:nNnT {\l__ffbd_columns_int} < {1}
+    {\int_set:Nn \l__ffbd_columns_int {5}}
+  \__ffbd_clear:
+  % Easy short commands exist only inside this environment.
+  \cs_set_eq:NN \function \ffbdFunction
+  \cs_set_eq:NN \start \ffbdStart
+  \cs_set_eq:NN \finish \ffbdFinish
+  \cs_set_eq:NN \flow \ffbdFlow
+  \cs_set_eq:NN \branch \ffbdBranch
+  \cs_set_eq:NN \join \ffbdJoin
+  \cs_set_eq:NN \loopflow \ffbdLoopFlow
+  \cs_set_eq:NN \precondition \ffbdPrecondition
+  \cs_set_eq:NN \timing \ffbdTiming
+  \cs_set_eq:NN \note \ffbdNote
+  \cs_set_eq:NN \annotation \ffbdAnnotation
+}
+\NewDocumentEnvironment{ffbd}{O{}}
+  {\__ffbd_begin:n {#1}}
+  {\__ffbd_render:}
+
+\ExplSyntaxOff
+\endinput

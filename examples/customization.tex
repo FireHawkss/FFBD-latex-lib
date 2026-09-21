@@ -1,0 +1,37 @@
+\documentclass[a4paper]{article}
+\usepackage[margin=22mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+
+\ffbdDeclareTheme{corporate}{
+  function-fill=cyan!12,
+  function-draw=cyan!45!black,
+  and-fill=green!25,
+  and-draw=green!45!black,
+  or-fill=orange!30,
+  or-draw=orange!65!black,
+  terminal-fill=cyan!20,
+  annotation-fill=gray!5,
+  ink=black
+}
+
+\begin{document}
+\begin{ffbd}[
+  theme=corporate,
+  direction=down,
+  fill=false,
+  font=serif,
+  line-weight=heavy,
+  annotations=right
+]
+  \start{begin}{Trigger received}
+  \function{inspect}{Inspect system state}
+  \function{act}{Perform action}
+  \finish{done}{Objective achieved}
+
+  \flow{begin}{inspect}
+  \flow[condition={Ready}]{inspect}{act}
+  \flow{act}{done}
+  \note{inspect}{This example intentionally uses transparent blocks}
+\end{ffbd}
+\end{document}
