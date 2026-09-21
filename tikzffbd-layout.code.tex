@@ -414,11 +414,18 @@
     \tl_if_blank:VF\l__ffbd_saved_side_tl{\fp_set:Nn\l_tmpa_fp{1}}
     \fp_compare:nNnTF{\l_tmpa_fp}={0}{
       \__ffbd_vertical_ports:nn{#1}{#2}
-      % At a horizontal wrap, enter the next band along its primary axis.
+      % At a horizontal wrap, use the outside edge of both nodes.  This is
+      % especially important for a split at the row boundary: the incoming
+      % branch arrows then use the targets' outside edges, leaving their
+      % inside edges free for the continuing flow along the wrapped row.
       \bool_if:NT\l__ffbd_wrap_bool{
         \fp_set:Nn\l_tmpa_fp{-1}
         \int_if_odd:nT{\int_div_truncate:nn{\prop_item:Nn\l__ffbd_rank_prop{#2}}{\l__ffbd_columns_int}}
           {\fp_set:Nn\l_tmpa_fp{1}}
+        \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_y_prop{#1}}
+        \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_x_prop{#1}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#1}/2}
+        \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}
+        \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
         \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_y_prop{#2}}
         \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_x_prop{#2}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}
         \fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{2.5mm}}

@@ -66,13 +66,25 @@ def document(body, options=''):
 
 def main():
     for name in ('basic', 'complex', 'customization'):
-        boxes, _ = check(name, (ROOT / f'examples/{name}.tex').read_text())
+        boxes, segments = check(name, (ROOT / f'examples/{name}.tex').read_text())
         if name == 'basic':
             blocks = [b for node, b in boxes if not node.startswith('annotation-')]
             centers = [((b[0]+b[2])/2, (b[1]+b[3])/2) for b in blocks]
             for (x1, y1), (x2, y2) in zip(centers, centers[1:]):
                 assert abs(x2-x1-36*72.27/25.4) < .02, 'basic pitch changed'
                 assert abs(y2-y1) < .02, 'basic row is not straight'
+        if name == 'complex':
+            bounds = dict(boxes)
+            for target in ('safety', 'resources', 'schedule'):
+                route = [segment for ends, segment in segments
+                         if ends == ['@c3', target]]
+                assert route, f'complex: missing wrapped split route to {target}'
+                assert abs(route[0][0] - bounds['@c3'][2]) < .05
+                assert route[0][2] > route[0][0], (
+                    'complex: wrapped split must leave the AND connector on its right')
+                assert abs(route[-1][2] - bounds[target][2]) < .05
+                assert route[-1][0] > route[-1][2], (
+                    f'complex: wrapped split must enter {target} on its right')
     specimen = (ROOT / 'examples/complex.tex').read_text()
     check('complex-unwrapped', specimen.replace('wrap=true', 'wrap=false'))
     check('complex-portrait', specimen.replace('landscape,margin', 'margin'))
