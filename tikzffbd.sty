@@ -1,6 +1,6 @@
 %% tikzffbd.sty -- Functional Flow Block Diagrams without low-level TikZ
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage{tikzffbd}{2026-09-21}{0.1.0}
+\ProvidesExplPackage{tikzffbd}{2026-09-21}{0.2.0}
   {Automatic, polished Functional Flow Block Diagrams}
 
 \ExplSyntaxOff
@@ -140,7 +140,7 @@
 }
 \cs_new_protected:Npn \__ffbd_defaults:{
   \keys_set:nn {tikzffbd/env}{
-    theme=ocean,fill=true,wrap=true,scale-to-fit=true,debug=false,
+    theme=ocean,fill=true,wrap=true,scale-to-fit=true,debug=false,layout-debug=false,
     max-columns=5,block-width=27mm,column-sep=36mm,row-sep=20mm,
     font=sans,line-weight=thin,direction=right,annotations=below}
 }
@@ -149,8 +149,6 @@
 \seq_new:N \l__ffbd_nodes_seq
 \seq_new:N \l__ffbd_edges_seq
 \seq_new:N \l__ffbd_flows_seq
-\seq_new:N \l__ffbd_branches_seq
-\seq_new:N \l__ffbd_joins_seq
 \seq_new:N \l__ffbd_loops_seq
 \prop_new:N \l__ffbd_label_prop
 \prop_new:N \l__ffbd_number_prop
@@ -169,8 +167,6 @@
   \seq_clear:N \l__ffbd_nodes_seq
   \seq_clear:N \l__ffbd_edges_seq
   \seq_clear:N \l__ffbd_flows_seq
-  \seq_clear:N \l__ffbd_branches_seq
-  \seq_clear:N \l__ffbd_joins_seq
   \seq_clear:N \l__ffbd_loops_seq
   \prop_clear:N \l__ffbd_label_prop
   \prop_clear:N \l__ffbd_number_prop
@@ -237,21 +233,39 @@
   \seq_put_right:Nx \l__ffbd_flows_seq
     {{#2}{#3}{\exp_not:V \l__ffbd_edge_label_tl}}
 }
+% Logical connectors participate in ranking and measurement just like blocks.
 \tl_new:N \l__ffbd_source_tl
-\cs_new_protected:Npn \__ffbd_branch_plain:n #1{
-  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n {#1}}
-  \exp_args:NVV \__ffbd_edge:nn \l__ffbd_source_tl \l_tmpa_tl
+\cs_new_protected:Npn \__ffbd_connector:n #1{
+  \int_incr:N \l__ffbd_connector_int
+  \tl_set:Nx \l__ffbd_source_tl {@c\int_use:N\l__ffbd_connector_int}
+  \seq_put_right:NV \l__ffbd_nodes_seq \l__ffbd_source_tl
+  \prop_put:NVx \l__ffbd_label_prop \l__ffbd_source_tl {\str_uppercase:n{#1}}
+  \prop_put:NVn \l__ffbd_number_prop \l__ffbd_source_tl {}
+  \prop_put:NVn \l__ffbd_type_prop \l__ffbd_source_tl {#1}
+  \prop_put:NVn \l__ffbd_rank_prop \l__ffbd_source_tl {0}
 }
-\cs_new_protected:Npn \__ffbd_branch_labeled:nn #1#2
-  {\__ffbd_branch_plain:n {#1}}
+\cs_new_protected:Npn \__ffbd_branch_plain:n #1
+  {\__ffbd_branch_labeled:nn {#1}{}}
+\cs_new_protected:Npn \__ffbd_branch_labeled:nn #1#2{
+  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n{#1}}
+  \exp_args:NVV \__ffbd_edge:nn \l__ffbd_source_tl \l_tmpa_tl
+  \seq_put_right:Nx \l__ffbd_flows_seq
+    {{\l__ffbd_source_tl}{\l_tmpa_tl}{\exp_not:n{#2}}}
+}
 \NewDocumentCommand \ffbdBranch {O{and}mm}{
-  \tl_set:Nn \l__ffbd_source_tl {#2}
+  \__ffbd_connector:n {#1}
+  \exp_args:NnV \__ffbd_edge:nn {#2}\l__ffbd_source_tl
+  \seq_put_right:Nx \l__ffbd_flows_seq {{#2}{\l__ffbd_source_tl}{}}
   \keyval_parse:NNn \__ffbd_branch_plain:n \__ffbd_branch_labeled:nn {#3}
-  \seq_put_right:Nn \l__ffbd_branches_seq {{#1}{#2}{#3}}
 }
 \NewDocumentCommand \ffbdJoin {O{and}mm}{
-  \clist_map_inline:nn {#2}{\__ffbd_edge:nn {##1}{#3}}
-  \seq_put_right:Nn \l__ffbd_joins_seq {{#1}{#2}{#3}}
+  \__ffbd_connector:n {#1}
+  \clist_map_inline:nn {#2}{
+    \exp_args:NnV \__ffbd_edge:nn {##1}\l__ffbd_source_tl
+    \seq_put_right:Nx \l__ffbd_flows_seq {{##1}{\l__ffbd_source_tl}{}}
+  }
+  \exp_args:NV \__ffbd_edge:nn \l__ffbd_source_tl {#3}
+  \seq_put_right:Nx \l__ffbd_flows_seq {{\l__ffbd_source_tl}{#3}{}}
 }
 \tl_new:N \l__ffbd_loop_label_tl
 \tl_new:N \l__ffbd_loop_side_tl
@@ -287,60 +301,6 @@
   {\__ffbd_annotate:nnn {Note}{#1}{#2}}
 \NewDocumentCommand \ffbdAnnotation {O{Info}mm}
   {\__ffbd_annotate:nnn {#1}{#2}{#3}}
-
-% Longest-path layered layout. Loop edges intentionally do not affect rank.
-\cs_new_protected:Npn \__ffbd_relax:nn #1#2{
-  \prop_get:NnN \l__ffbd_rank_prop {#1}\l_tmpa_tl
-  \prop_get:NnN \l__ffbd_rank_prop {#2}\l_tmpb_tl
-  \int_compare:nNnT {\l_tmpb_tl} < {\l_tmpa_tl+1}
-    {\prop_put:Nnx \l__ffbd_rank_prop {#2}{\int_eval:n{\l_tmpa_tl+1}}}
-}
-\cs_new_protected:Npn \__ffbd_layout:{
-  \int_step_inline:nn {\seq_count:N\l__ffbd_nodes_seq}{
-    \seq_map_inline:Nn \l__ffbd_edges_seq {\__ffbd_relax:nn ####1}}
-  \prop_clear:N \l__ffbd_count_prop
-  \int_zero:N \l__ffbd_lanes_int
-  \seq_map_inline:Nn \l__ffbd_nodes_seq {
-    \prop_get:NnN \l__ffbd_rank_prop {##1}\l_tmpa_tl
-    \prop_get:NVNTF \l__ffbd_count_prop \l_tmpa_tl \l_tmpb_tl
-      {\prop_put:NVx \l__ffbd_count_prop \l_tmpa_tl
-        {\int_eval:n{\l_tmpb_tl+1}}}
-      {\prop_put:NVn \l__ffbd_count_prop \l_tmpa_tl {1}}
-  }
-  \prop_map_inline:Nn \l__ffbd_count_prop
-    {\int_set:Nn \l__ffbd_lanes_int {\int_max:nn{\l__ffbd_lanes_int}{##2}}}
-  \prop_clear:N \l__ffbd_used_prop
-  \seq_map_inline:Nn \l__ffbd_nodes_seq {
-    \prop_get:NnN \l__ffbd_rank_prop {##1}\l_tmpa_tl
-    \prop_get:NVN \l__ffbd_count_prop \l_tmpa_tl \l_tmpb_tl
-    \prop_get:NVNTF \l__ffbd_used_prop \l_tmpa_tl \l_tmpc_tl
-      {}{\tl_set:Nn \l_tmpc_tl {0}}
-    \bool_if:NTF \l__ffbd_wrap_bool {
-      \int_set:Nn \l_tmpa_int
-        {\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-      \int_set:Nn \l_tmpb_int
-        {\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-      \int_if_odd:nT {\l_tmpa_int}
-        {\int_set:Nn \l_tmpb_int
-          {\l__ffbd_columns_int-1-\l_tmpb_int}}
-    }{
-      \int_zero:N \l_tmpa_int
-      \int_set:Nn \l_tmpb_int {\l_tmpa_tl}
-    }
-    \fp_set:Nn \l_tmpa_fp {(\l_tmpb_tl-1)/2-\l_tmpc_tl}
-    \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
-      \prop_put:Nnx \l__ffbd_x_prop {##1}{\int_use:N\l_tmpb_int}
-      \prop_put:Nnx \l__ffbd_y_prop {##1}
-        {\fp_eval:n{\l_tmpa_fp-\l_tmpa_int*(\l__ffbd_lanes_int+2.5)}}
-    }{
-      \prop_put:Nnx \l__ffbd_x_prop {##1}
-        {\fp_eval:n{\l_tmpa_fp+\l_tmpa_int*(\l__ffbd_lanes_int+2.5)}}
-      \prop_put:Nnx \l__ffbd_y_prop {##1}{\int_eval:n{-\l_tmpb_int}}
-    }
-    \prop_put:NVx \l__ffbd_used_prop \l_tmpa_tl
-      {\int_eval:n{\l_tmpc_tl+1}}
-  }
-}
 
 % Drawing
 \cs_new_protected:Npn \__ffbd_styles:{
@@ -394,155 +354,9 @@
       ffbd/annotation/.append~style={fill=none}}
   }
 }
-\cs_new_protected:Npn \__ffbd_draw_node:n #1{
-  \prop_get:NnN \l__ffbd_x_prop {#1}\l_tmpa_tl
-  \prop_get:NnN \l__ffbd_y_prop {#1}\l_tmpb_tl
-  \prop_get:NnN \l__ffbd_type_prop {#1}\l_tmpc_tl
-  \prop_get:NnN \l__ffbd_number_prop {#1}\l_tmpd_tl
-  \prop_get:NnN \l__ffbd_label_prop {#1}\l_tmpe_tl
-  \node[ffbd/\l_tmpc_tl] (ffbd-#1) at (\l_tmpa_tl,\l_tmpb_tl) {
-    \tl_if_blank:VF \l_tmpd_tl
-      {{\bfseries\scriptsize\l_tmpd_tl}\\[-1pt]}
-    \l_tmpe_tl
-    \bool_if:NT \l__ffbd_debug_bool
-      {\\[-1pt]{\ttfamily\tiny #1}}
-  };
-}
-\cs_new_protected:Npn \__ffbd_draw_flow:nnn #1#2#3{
-  \tl_if_blank:nTF {#3}{
-    \draw[ffbd/flow] (ffbd-#1) -- (ffbd-#2);
-  }{
-    \draw[ffbd/flow] (ffbd-#1) --
-      node[ffbd/edge-label]{#3} (ffbd-#2);
-  }
-}
-\tl_new:N \l__ffbd_first_tl
-\tl_new:N \l__ffbd_connector_tl
-\cs_new_protected:Npn \__ffbd_first_plain:n #1{
-  \tl_if_blank:VT \l__ffbd_first_tl
-    {\tl_set:Nx \l__ffbd_first_tl {\tl_trim_spaces:n{#1}}}
-}
-\cs_new_protected:Npn \__ffbd_first_labeled:nn #1#2
-  {\__ffbd_first_plain:n {#1}}
-\cs_new_protected:Npn \__ffbd_out_plain:n #1{
-  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n{#1}}
-  \draw[ffbd/flow] (\l__ffbd_connector_tl) -- (ffbd-\l_tmpa_tl);
-}
-\cs_new_protected:Npn \__ffbd_out_labeled:nn #1#2{
-  \tl_set:Nx \l_tmpa_tl {\tl_trim_spaces:n{#1}}
-  \draw[ffbd/flow] (\l__ffbd_connector_tl) --
-    node[ffbd/edge-label]{#2} (ffbd-\l_tmpa_tl);
-}
-\cs_new_protected:Npn \__ffbd_draw_branch:nnn #1#2#3{
-  \int_incr:N \l__ffbd_connector_int
-  \tl_clear:N \l__ffbd_first_tl
-  \keyval_parse:NNn \__ffbd_first_plain:n \__ffbd_first_labeled:nn {#3}
-  \prop_get:NnN \l__ffbd_x_prop {#2}\l_tmpa_tl
-  \prop_get:NnN \l__ffbd_y_prop {#2}\l_tmpb_tl
-  \prop_get:NVN \l__ffbd_x_prop \l__ffbd_first_tl \l_tmpc_tl
-  \prop_get:NVN \l__ffbd_y_prop \l__ffbd_first_tl \l_tmpd_tl
-  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
-    \fp_compare:nNnTF {\l_tmpa_tl} = {\l_tmpc_tl}{
-      \tl_set_eq:NN \l_tmpe_tl \l_tmpa_tl
-      \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
-    }{
-      \tl_set:Nx \l_tmpe_tl {\fp_eval:n{(\l_tmpa_tl+\l_tmpc_tl)/2}}
-      \tl_set_eq:NN \l_tmpf_tl \l_tmpb_tl
-    }
-  }{
-    \tl_set_eq:NN \l_tmpe_tl \l_tmpa_tl
-    \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
-  }
-  \tl_set:Nx \l__ffbd_connector_tl
-    {ffbd-c-\int_use:N\l__ffbd_connector_int}
-  \node[ffbd/#1] (\l__ffbd_connector_tl) at (\l_tmpe_tl,\l_tmpf_tl)
-    {\str_uppercase:n{#1}};
-  \draw[ffbd/flow] (ffbd-#2) -- (\l__ffbd_connector_tl);
-  \keyval_parse:NNn \__ffbd_out_plain:n \__ffbd_out_labeled:nn {#3}
-}
-\cs_new_protected:Npn \__ffbd_draw_join:nnn #1#2#3{
-  \int_incr:N \l__ffbd_connector_int
-  \clist_set:Nn \l_tmpa_clist {#2}
-  \tl_set:Nx \l__ffbd_first_tl {\clist_item:Nn\l_tmpa_clist{1}}
-  \prop_get:NVN \l__ffbd_x_prop \l__ffbd_first_tl \l_tmpa_tl
-  \prop_get:NVN \l__ffbd_y_prop \l__ffbd_first_tl \l_tmpb_tl
-  \prop_get:NnN \l__ffbd_x_prop {#3}\l_tmpc_tl
-  \prop_get:NnN \l__ffbd_y_prop {#3}\l_tmpd_tl
-  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
-    \fp_compare:nNnTF {\l_tmpa_tl} = {\l_tmpc_tl}{
-      \tl_set_eq:NN \l_tmpe_tl \l_tmpc_tl
-      \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
-    }{
-      \tl_set:Nx \l_tmpe_tl {\fp_eval:n{(\l_tmpa_tl+\l_tmpc_tl)/2}}
-      \tl_set_eq:NN \l_tmpf_tl \l_tmpd_tl
-    }
-  }{
-    \tl_set_eq:NN \l_tmpe_tl \l_tmpc_tl
-    \tl_set:Nx \l_tmpf_tl {\fp_eval:n{(\l_tmpb_tl+\l_tmpd_tl)/2}}
-  }
-  \tl_set:Nx \l__ffbd_connector_tl
-    {ffbd-c-\int_use:N\l__ffbd_connector_int}
-  \node[ffbd/#1] (\l__ffbd_connector_tl) at (\l_tmpe_tl,\l_tmpf_tl)
-    {\str_uppercase:n{#1}};
-  \clist_map_inline:Nn \l_tmpa_clist
-    {\draw[ffbd/flow] (ffbd-##1) -- (\l__ffbd_connector_tl);}
-  \draw[ffbd/flow] (\l__ffbd_connector_tl) -- (ffbd-#3);
-}
-\cs_new_protected:Npn \__ffbd_loop_path:nnnnn #1#2#3#4#5{
-  \tl_if_blank:nTF {#3}{
-    \draw[ffbd/flow] (ffbd-#1)
-      to[out=#4,in=#5,looseness=1.25] (ffbd-#2);
-  }{
-    \draw[ffbd/flow] (ffbd-#1)
-      to[out=#4,in=#5,looseness=1.25]
-      node[ffbd/edge-label]{#3} (ffbd-#2);
-  }
-}
-\cs_new_protected:Npn \__ffbd_draw_loop:nnnn #1#2#3#4{
-  \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
-    \str_if_eq:nnTF {#4}{above}
-      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{90}{90}}
-      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{-90}{-90}}
-  }{
-    \str_if_eq:nnTF {#4}{above}
-      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{180}{180}}
-      {\__ffbd_loop_path:nnnnn {#1}{#2}{#3}{0}{0}}
-  }
-}
-\cs_new_protected:Npn \__ffbd_draw_annotation:nn #1#2{
-  \node[ffbd/annotation,
-    \l__ffbd_annotation_place_tl=4mm~of~ffbd-#1]{#2};
-}
-
-\cs_new_protected:Npn \__ffbd_render:{
-  \__ffbd_layout:
-  \__ffbd_styles:
-  \hbox_set:Nn \l__ffbd_box {
-    \begin{tikzpicture}[
-      x=\l__ffbd_xsep_dim,y=\l__ffbd_ysep_dim,
-      baseline=(current~bounding~box.center)]
-      \seq_map_inline:Nn \l__ffbd_nodes_seq {\__ffbd_draw_node:n {##1}}
-      \seq_map_inline:Nn \l__ffbd_flows_seq {\__ffbd_draw_flow:nnn ##1}
-      \seq_map_inline:Nn \l__ffbd_branches_seq {\__ffbd_draw_branch:nnn ##1}
-      \seq_map_inline:Nn \l__ffbd_joins_seq {\__ffbd_draw_join:nnn ##1}
-      \seq_map_inline:Nn \l__ffbd_loops_seq {\__ffbd_draw_loop:nnnn ##1}
-      \prop_map_inline:Nn \l__ffbd_annotation_prop
-        {\__ffbd_draw_annotation:nn {##1}{##2}}
-    \end{tikzpicture}
-  }
-  \par\smallskip\noindent
-  \dim_set:Nn \l_tmpa_dim {\box_ht:N\l__ffbd_box+\box_dp:N\l__ffbd_box}
-  \dim_compare:nNnT {\l_tmpa_dim}>{.8\textheight}
-    {\msg_warning:nnx {tikzffbd}{tall}{\dim_use:N\l_tmpa_dim}}
-  \dim_compare:nNnTF {\box_wd:N\l__ffbd_box}>{\linewidth}{
-    \bool_if:NTF \l__ffbd_scale_bool
-      {\resizebox{\linewidth}{!}{\box_use:N\l__ffbd_box}}
-      {\box_use:N\l__ffbd_box}
-  }{
-    \box_use:N\l__ffbd_box
-  }
-  \par\smallskip
-}
+% Geometry, placement and routing are kept together so every drawing pass
+% uses the same measured bounds (including transparent shapes).
+\file_input:n {tikzffbd-layout.code.tex}
 
 \cs_new_protected:Npn \__ffbd_begin:n #1{
   \__ffbd_defaults:

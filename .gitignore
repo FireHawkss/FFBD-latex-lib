@@ -1,3 +1,6 @@
 *.aux
 *.log
 *.png
+
+# Scratch builds and regression artifacts (existing review PDFs stay tracked).
+/build/

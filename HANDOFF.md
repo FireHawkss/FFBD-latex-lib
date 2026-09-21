@@ -54,7 +54,8 @@ arbitrary manual control.
 
 ## Current implementation
 
-The prototype is version `0.1.0` and lives in `tikzffbd.sty`.
+The prototype is version `0.2.0`; its public API lives in `tikzffbd.sty`
+and the measured layout engine in `tikzffbd-layout.code.tex`.
 
 The public short commands are installed locally inside an `ffbd` environment,
 which avoids polluting the rest of a document with generic names such as
@@ -101,28 +102,32 @@ Function numbering is automatic. Use `number=2.3` to override it or
 
 ## Layout architecture
 
-The package uses a deterministic layered layout that remains portable to
-pdfLaTeX:
+The package uses a measured, deterministic layout portable to pdfLaTeX:
 
-1. Forward relationships from `\flow`, `\branch`, and `\join` form an acyclic
-   ranking graph.
-2. Repeated longest-path relaxation assigns each function a logical stage.
-3. Functions at the same stage are placed in centered parallel lanes.
-4. Declaration order resolves ordering within a stage.
-5. Explicit loop edges are excluded from rank calculation and routed around
-   the finished graph.
-6. With wrapping enabled, stages snake after `max-columns`.
-7. The finished TikZ picture is measured and optionally scaled to
-   `\linewidth`.
+1. Functions and generated logical connectors participate in longest-path ranking.
+   Connector stages reserve real space. Feedback edges do not affect rank.
+2. The same TikZ styles measure and draw block, connector, annotation, and label
+   rectangles. Stage widths and lane pitches grow to accommodate those bounds.
+3. Declaration order determines lane ordering. Wrapping snakes after
+   `max-columns`, counting connector stages. Occupied band extents determine
+   wrap offsets with a common gutter.
+4. Blocks are fixed before annotations and arrows are placed. Annotations can
+   move to another side if their requested position is occupied.
+5. A rectangle registry drives orthogonal routing: central corridors, obstacle
+   boundaries, then routes with additional bends. Feedback uses outer corridors.
+   An unrouteable edge produces an error, rather than a colliding fallback line.
+6. Labels are placed after all routes, checking both objects and arrow segments.
+7. The result is optionally scaled to the available width. Height diagnostics
+   use the final scaled size.
 
-This is intentionally not a general graph-layout solver. TikZ graph-drawing's
-stronger algorithms generally depend on LuaTeX, while pdfLaTeX/Overleaf was a
-primary requirement. The API is declarative enough that a LuaLaTeX layout
-backend could be added later without changing diagram source.
+Implementation is split between the public API/styles in `tikzffbd.sty` and
+`tikzffbd-layout.code.tex`. Distribute both files together.
 
 ## Repository map
 
-- `tikzffbd.sty` -- package and layout implementation.
+- `tikzffbd.sty` -- public API, graph declarations, and styles.
+- `tikzffbd-layout.code.tex` -- measurement, layout, obstacle registry, routing.
+- `tests/check_layout.py` -- compilation and geometric collision regressions.
 - `README.md` -- user-facing quick start, API, themes, and options.
 - `examples/basic.tex` -- five-block straight-line acceptance example.
 - `examples/complex.tex` -- 15-block landscape acceptance example with three
@@ -130,7 +135,7 @@ backend could be added later without changing diagram source.
 - `examples/customization.tex` -- custom theme, vertical flow, transparent
   blocks, serif type, heavy lines, and side annotations.
 - `.gitignore` -- ignores build artifacts.
-- `build/` -- locally generated PDFs and logs; intentionally ignored.
+- `build/` -- tracked review PDFs plus ignored scratch builds and logs.
 
 ## Verification already performed
 
@@ -147,8 +152,9 @@ TEXINPUTS=.: pdflatex -interaction=nonstopmode -halt-on-error \
   -output-directory=build examples/customization.tex
 ```
 
-The logs were scanned for LaTeX/package warnings and overfull/underfull boxes;
-none were present. `git diff --check` passes.
+The original builds had no typesetting warnings. The revised wrapped complex
+specimen occupies more than 80 percent of the text height and triggers the
+package height advisory, but fits on one page without overfull/underfull boxes. `git diff --check` passes.
 
 The basic example also compiles successfully with LuaLaTeX. XeLaTeX was not
 installed in the development environment and has not been tested.
@@ -159,50 +165,27 @@ Generated review files currently exist at:
 - `build/complex.pdf`
 - `build/customization.pdf`
 
+## Layout revision after visual review
+
+The original complex specimen was already landscape; compiling unchanged portrait
+and landscape versions confirmed that page orientation did not remove overlaps.
+Baseline PDFs and the original style are retained locally under `build/before/`.
+The revised complex example uses landscape and `max-columns=8` for a readable,
+two-row drawing. The original basic diagram retains its nominal 36mm pitch.
+
 ## Known limitations and engineering debt
 
-1. Structured wrapping is still an MVP. A wrap boundary that falls directly
-   inside a dense split/join group can produce less attractive routing. The
-   complex acceptance example therefore uses a landscape page and
-   `wrap=false` for readability.
-2. Connectors currently use direct line segments rather than a complete
-   obstacle-avoiding orthogonal router. Dense diagrams can have crossings or
-   crowded condition labels.
-3. Scaling guarantees width fit, but there is no automatic choice between
-   portrait, landscape, wrapping, and font-size preservation. Height only
-   produces a warning when it exceeds 80 percent of `\textheight`.
-4. The ranking algorithm expects forward edges to be acyclic. Feedback must be
-   expressed with `\loopflow`; this requirement is documented but not yet
-   validated with a dedicated cycle diagnostic.
-5. Error handling exists for duplicate, missing, and malformed identifiers,
-   but there is no comprehensive negative-test suite.
-6. There is not yet a `.dtx`/`.ins` package structure, generated manual,
-   semantic versioning policy, license file, or CTAN metadata.
-7. Visual snapshots are inspected manually; there is no regression/image test
-   harness.
+- The bounded corridor router is not a general maze solver. A failed route raises
+  a package error with spacing guidance. Arrow-to-arrow crossings and shared
+  branch/join trunks are possible; boxes and text remain obstacles.
+- Width fitting can reduce font sizes. Automatic orientation selection, pagination,
+  and group-aware wrap selection are not implemented.
+- Annotation placement is a side preference, not an absolute position constraint.
+- Visual review still complements the geometry regression suite. Engine checks
+  cover pdfLaTeX and LuaLaTeX; XeLaTeX and Overleaf have not been exercised here.
+- A `.dtx`/`.ins` distribution, license, and CTAN packaging remain future work.
 
-## Recommended next work
-
-Before expanding features, ask the owner to review the three generated PDFs
-and collect feedback on block proportions, typography, palette, connector
-shapes, arrow routing, numbering, and annotation presentation.
-
-Suggested technical order after visual feedback:
-
-1. Improve split/join routing with orthogonal buses and explicit forward-axis
-   awareness, including wrap transitions.
-2. Make wrapping group-aware so a split, its parallel stage, and its join stay
-   in the same row when feasible.
-3. Add targeted TeX fixtures for every public option, invalid input, multiple
-   diagrams per document, and combinations of annotations.
-4. Test recent TeX Live versions on pdfLaTeX, LuaLaTeX, XeLaTeX, and Overleaf.
-5. Add a small visual gallery comparing all built-in palettes.
-6. Once the API stabilizes, convert to a documented package structure and add
-   release/license metadata suitable for public distribution.
-
-## Working-tree state
-
-At handoff time the implementation is present but uncommitted. `README.md` is
-modified and `.gitignore`, `HANDOFF.md`, `tikzffbd.sty`, and `examples/` are
-new files. Do not discard these changes. Build outputs are ignored.
-
+All 22 checks in `python3 tests/check_layout.py --lua` pass, including geometry,
+the unchanged basic pitch, multiple diagrams, and cycle diagnostics. All four
+tracked review PDFs have been rebuilt. Scratch builds remain ignored; source
+changes are left uncommitted for review.
