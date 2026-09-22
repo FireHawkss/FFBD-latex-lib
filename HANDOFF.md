@@ -54,7 +54,7 @@ arbitrary manual control.
 
 ## Current implementation
 
-The prototype is version `0.4.0`; its public API lives in `tikzffbd.sty`
+The prototype is version `0.4.1`; its public API lives in `tikzffbd.sty`
 and the measured layout engine in `tikzffbd-layout.code.tex`.
 
 The public short commands are installed locally inside an `ffbd` environment,
@@ -200,7 +200,8 @@ two-row drawing. The original basic diagram retains its nominal 36mm pitch.
 
 - The bounded corridor router is not a general maze solver. A failed route raises
   a package error with spacing guidance. Arrow-to-arrow crossings and shared
-  branch/join trunks are possible; boxes and text remain obstacles.
+  branch trunks are possible; boxes and text remain obstacles. Join inputs that
+  leave their source rows in the same direction deliberately share one trunk.
 - Width fitting can reduce font sizes. Automatic orientation selection, pagination,
   and group-aware wrap selection are not implemented.
 - Annotation placement is a side preference, not an absolute position constraint.
@@ -216,3 +217,8 @@ Version 0.4 also preserves one-in/one-out branch lanes through intermediate
 functions, provides `\endrow` for explicit snake-row boundaries, and assigns
 normal-flow input/output ports from the direction of each row so a block never
 reuses its input side for an output. Focused geometry regressions cover all three.
+
+Version 0.4.1 rejects routes that immediately reverse over their source or
+target port stub and precomputes a common bend track for compatible join inputs.
+The real-world acceptance diagram is covered at both five and four columns, and
+the geometry suite checks every ordinary route port for an immediate reversal.

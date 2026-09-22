@@ -24,6 +24,17 @@ def segment_length(segment):
     return abs(segment[2] - segment[0]) + abs(segment[3] - segment[1])
 
 
+def reverses(previous, following, tolerance=0.05):
+    if (abs(previous[2] - following[0]) >= tolerance
+            or abs(previous[3] - following[1]) >= tolerance):
+        return False
+    first = (previous[2] - previous[0], previous[3] - previous[1])
+    second = (following[2] - following[0], following[3] - following[1])
+    collinear = (abs(first[0]) < tolerance and abs(second[0]) < tolerance
+                 or abs(first[1]) < tolerance and abs(second[1]) < tolerance)
+    return collinear and first[0] * second[0] + first[1] * second[1] < -tolerance
+
+
 def check(name, source, engine='pdflatex', extended=False):
     source = source.replace(r'\begin{ffbd}[', r'\begin{ffbd}[layout-debug=true,')
     source = source.replace(r'\begin{ffbd}' + '\n', r'\begin{ffbd}[layout-debug=true]' + '\n')
@@ -59,6 +70,31 @@ def check(name, source, engine='pdflatex', extended=False):
             for bn, box in boxes:
                 # Endpoints touch their blocks, but must never enter their interiors.
                 assert not intersects(segment, box), f'{name}: {ends} crosses {bn}: {segment}, {box}'
+        bounds = dict(boxes)
+        index = 0
+        while index < len(segments):
+            ends = segments[index][0]
+            limit = index + 1
+            while limit < len(segments) and segments[limit][0] == ends:
+                limit += 1
+            route = [segment for _, segment in segments[index:limit]]
+            if len(route) > 1 and ends[0] in bounds:
+                box = bounds[ends[0]]
+                center = ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)
+                ordinary_port = (abs(route[0][0] - center[0]) < .05
+                                 or abs(route[0][1] - center[1]) < .05)
+                assert not ordinary_port or not reverses(route[0], route[1]), (
+                    f'{name}: {ends} reverses over its source port stub: '
+                    f'{route[0]}, {route[1]}')
+            if len(route) > 1 and ends[1] in bounds:
+                box = bounds[ends[1]]
+                center = ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)
+                ordinary_port = (abs(route[-1][2] - center[0]) < .05
+                                 or abs(route[-1][3] - center[1]) < .05)
+                assert not ordinary_port or not reverses(route[-2], route[-1]), (
+                    f'{name}: {ends} reverses over its target port stub: '
+                    f'{route[-2]}, {route[-1]}')
+            index = limit
         all_boxes.extend(boxes)
         all_segments.extend(segments)
         all_structures.extend(structures)
@@ -289,6 +325,26 @@ def main():
         'separate-input-output-sides-down: input did not enter at the top')
     assert abs(down_outgoing[0][1] - down_bounds['a'][1]) < .05, (
         'separate-input-output-sides-down: output reused the input side')
+
+    # The real-world acceptance diagram previously exposed retraced source
+    # stubs and independently chosen join bends. Both inputs of each reported
+    # join now use one horizontal position before reaching the connector.
+    real_world = (ROOT / 'examples/1st-real-world-use.tex').read_text()
+    _, real_segments, _, _ = check('real-world-use', real_world, extended=True)
+    for connector, sources in (('@c2', ('if-assigned', 'auto-choose')),
+                               ('@c4', ('relay-info', 'if-no-survivor'))):
+        tracks = []
+        for source in sources:
+            vertical = [segment[0] for ends, segment in real_segments
+                        if ends == [source, connector]
+                        and abs(segment[0] - segment[2]) < .05
+                        and abs(segment[1] - segment[3]) >= .05]
+            assert vertical, f'real-world-use: missing join bend for {source}'
+            tracks.append(vertical[-1])
+        assert abs(tracks[0] - tracks[1]) < .05, (
+            f'real-world-use: inputs to {connector} do not share a join trunk')
+    check('real-world-use-narrow', real_world.replace('max-columns=5',
+                                                      'max-columns=4'))
     # Reused node IDs and different layout options must not leak between pictures.
     first = document(r'\start{s}{Start}\function{a}{Work}\finish{t}{End}'
                      r'\flow{s}{a}\flow{a}{t}', 'direction=down,annotations=right')

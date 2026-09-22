@@ -22,6 +22,8 @@
 \prop_new:N \l__ffbd_indegree_prop
 \prop_new:N \l__ffbd_outdegree_prop
 \prop_new:N \l__ffbd_node_lane_prop
+\prop_new:N \l__ffbd_join_track_prop
+\prop_new:N \l__ffbd_join_sign_prop
 \seq_new:N \l__ffbd_obstacles_seq
 \seq_new:N \l__ffbd_structure_obstacles_seq
 \seq_new:N \l__ffbd_active_obstacles_seq
@@ -62,6 +64,8 @@
 \fp_new:N \l__ffbd_best_length_fp
 \fp_new:N \l__ffbd_clearance_fp
 \fp_new:N \l__ffbd_outer_fp
+\fp_new:N \l__ffbd_join_sign_fp
+\fp_new:N \l__ffbd_join_track_fp
 \bool_new:N \l__ffbd_clear_bool
 \bool_new:N \l__ffbd_found_bool
 \tl_new:N \l__ffbd_path_tl
@@ -325,6 +329,7 @@
       {\prop_put:Nnx\l__ffbd_x_prop{##1}{\fp_eval:n{-\l__ffbd_y_fp}}}
   }
   \__ffbd_place_bands:
+  \__ffbd_build_join_tracks:
 }
 % Wrapped rows/columns have a common clear gutter, independent of how many
 % lanes their neighboring bands contain. Annotations contribute real extents.
@@ -584,11 +589,29 @@
   \fp_set_eq:NN\l__ffbd_px_fp\l__ffbd_qx_fp
   \fp_set_eq:NN\l__ffbd_py_fp\l__ffbd_qy_fp
 }
+\cs_new_protected:Npn \__ffbd_check_source_direction:nn #1#2{
+  \fp_compare:nT{
+    (#1-\l__ffbd_sx_fp)*(\l__ffbd_sx_fp-\l__ffbd_ax_fp)
+    +(#2-\l__ffbd_sy_fp)*(\l__ffbd_sy_fp-\l__ffbd_ay_fp)<-.01}
+    {\bool_set_false:N\l__ffbd_clear_bool}
+}
+\cs_new_protected:Npn \__ffbd_check_target_direction:nn #1#2{
+  \fp_compare:nT{
+    (\l__ffbd_tx_fp-#1)*(\l__ffbd_bx_fp-\l__ffbd_tx_fp)
+    +(\l__ffbd_ty_fp-#2)*(\l__ffbd_by_fp-\l__ffbd_ty_fp)<-.01}
+    {\bool_set_false:N\l__ffbd_clear_bool}
+}
 \cs_new_protected:Npn \__ffbd_try_path:{
   \fp_set_eq:NN\l__ffbd_px_fp\l__ffbd_sx_fp
   \fp_set_eq:NN\l__ffbd_py_fp\l__ffbd_sy_fp
   \fp_zero:N\l__ffbd_length_fp
   \bool_set_true:N\l__ffbd_clear_bool
+  \tl_if_blank:VT\l__ffbd_saved_side_tl{
+    \tl_set:Nx\l_tmpa_tl{\seq_item:Nn\l__ffbd_path_seq{1}}
+    \exp_after:wN\__ffbd_check_source_direction:nn\l_tmpa_tl
+    \tl_set:Nx\l_tmpa_tl{\seq_item:Nn\l__ffbd_path_seq{-2}}
+    \exp_after:wN\__ffbd_check_target_direction:nn\l_tmpa_tl
+  }
   \seq_map_inline:Nn\l__ffbd_path_seq{\__ffbd_check_point:nn ##1}
   \bool_if:NT\l__ffbd_clear_bool{
     % A small bend cost favors simple, stable routes.
@@ -711,6 +734,70 @@
     \int_if_odd:nT{\prop_item:NV\l__ffbd_rank_band_prop\l_tmpa_tl}
       {\fp_set:Nn#2{-1}}
   }
+}
+% Inputs of a join use one shared trunk whenever they leave their source rows
+% in the same direction. The trunk is at least as far forward as every source
+% stub, which also prevents a short, retraced dead end beside a source block.
+\cs_new_protected:Npn \__ffbd_join_track_init:n #1{
+  \bool_set_false:N\l_tmpa_bool
+  \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_type_prop{#1}}
+  \str_if_eq:VnT\l_tmpa_tl{and}{\bool_set_true:N\l_tmpa_bool}
+  \str_if_eq:VnT\l_tmpa_tl{or}{\bool_set_true:N\l_tmpa_bool}
+  \int_compare:nNnF{\prop_item:Nn\l__ffbd_indegree_prop{#1}}>{1}
+    {\bool_set_false:N\l_tmpa_bool}
+  \bool_if:NT\l_tmpa_bool{
+    \__ffbd_forward_sign:nN{#1}\l__ffbd_join_sign_fp
+    \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+      \fp_set:Nn\l__ffbd_join_track_fp{
+        \prop_item:Nn\l__ffbd_x_prop{#1}
+        -\l__ffbd_join_sign_fp*(\prop_item:Nn\l__ffbd_w_prop{#1}/2
+          +\dim_to_fp:n{\l__ffbd_port_stub_dim})}
+    }{
+      \fp_set:Nn\l__ffbd_join_track_fp{
+        \prop_item:Nn\l__ffbd_y_prop{#1}
+        +\l__ffbd_join_sign_fp*(\prop_item:Nn\l__ffbd_h_prop{#1}/2
+          +\dim_to_fp:n{\l__ffbd_port_stub_dim})}
+    }
+    \prop_put:Nnx\l__ffbd_join_track_prop{#1}{\fp_use:N\l__ffbd_join_track_fp}
+    \prop_put:Nnn\l__ffbd_join_sign_prop{#1}{0}
+  }
+}
+\cs_new_protected:Npn \__ffbd_join_track_add:nn #1#2{
+  \prop_if_in:NnT\l__ffbd_join_track_prop{#2}{
+    \__ffbd_forward_sign:nN{#1}\l__ffbd_join_sign_fp
+    \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+      \fp_set:Nn\l__ffbd_join_track_fp{
+        \prop_item:Nn\l__ffbd_x_prop{#1}
+        +\l__ffbd_join_sign_fp*(\prop_item:Nn\l__ffbd_w_prop{#1}/2
+          +\dim_to_fp:n{\l__ffbd_port_stub_dim})}
+    }{
+      \fp_set:Nn\l__ffbd_join_sign_fp{-\l__ffbd_join_sign_fp}
+      \fp_set:Nn\l__ffbd_join_track_fp{
+        \prop_item:Nn\l__ffbd_y_prop{#1}
+        +\l__ffbd_join_sign_fp*(\prop_item:Nn\l__ffbd_h_prop{#1}/2
+          +\dim_to_fp:n{\l__ffbd_port_stub_dim})}
+    }
+    \prop_get:NnN\l__ffbd_join_sign_prop{#2}\l_tmpa_tl
+    \fp_compare:nNnTF{\l_tmpa_tl}={0}{
+      \prop_put:Nnx\l__ffbd_join_sign_prop{#2}{\fp_use:N\l__ffbd_join_sign_fp}
+    }{
+      \fp_compare:nNnF{\l_tmpa_tl}={\l__ffbd_join_sign_fp}
+        {\prop_remove:Nn\l__ffbd_join_track_prop{#2}}
+    }
+    \prop_if_in:NnT\l__ffbd_join_track_prop{#2}{
+      \fp_set:Nn\l_tmpa_fp{\prop_item:Nn\l__ffbd_join_track_prop{#2}}
+      \fp_compare:nNnTF{\l__ffbd_join_sign_fp}>{0}
+        {\fp_set:Nn\l_tmpa_fp{max(\l_tmpa_fp,\l__ffbd_join_track_fp)}}
+        {\fp_set:Nn\l_tmpa_fp{min(\l_tmpa_fp,\l__ffbd_join_track_fp)}}
+      \prop_put:Nnx\l__ffbd_join_track_prop{#2}{\fp_use:N\l_tmpa_fp}
+    }
+  }
+}
+\cs_new_protected:Npn \__ffbd_build_join_tracks:{
+  \prop_clear:N\l__ffbd_join_track_prop
+  \prop_clear:N\l__ffbd_join_sign_prop
+  \seq_map_inline:Nn\l__ffbd_nodes_seq{\__ffbd_join_track_init:n{##1}}
+  \seq_map_inline:Nn\l__ffbd_edges_seq{\__ffbd_join_track_add:nn ##1}
 }
 \cs_new_protected:Npn \__ffbd_ports:nn #1#2{
   \bool_set_false:N\l__ffbd_source_virtual_bool
@@ -837,10 +924,18 @@
   \seq_map_inline:Nn\l__ffbd_active_obstacles_seq{\__ffbd_tracks:nnnnn ##1}
   \seq_clear:N\l__ffbd_best_seq \fp_set:Nn\l__ffbd_best_length_fp{inf}
   \tl_if_blank:VTF\l__ffbd_saved_side_tl{
+    % Join inputs with a common source direction use their precomputed trunk.
+    \prop_get:NnNT\l__ffbd_join_track_prop{#2}\l_tmpa_tl{
+      \str_if_eq:VnTF\l__ffbd_direction_tl{right}
+        {\__ffbd_xtrack:n{\l_tmpa_tl}}
+        {\__ffbd_ytrack:n{\l_tmpa_tl}}
+    }
     % A wrapped split shares a single outside bus for all destination lanes.
     \str_if_eq:VnT\l__ffbd_direction_tl{right}{
-      \fp_compare:nNnT{\prop_item:Nn\l__ffbd_x_prop{#1}}={\prop_item:Nn\l__ffbd_x_prop{#2}}
-        {\__ffbd_xtrack:n{\l__ffbd_tx_fp}}
+      \seq_if_empty:NT\l__ffbd_best_seq{
+        \fp_compare:nNnT{\prop_item:Nn\l__ffbd_x_prop{#1}}={\prop_item:Nn\l__ffbd_x_prop{#2}}
+          {\__ffbd_xtrack:n{\l__ffbd_tx_fp}}
+      }
     }
     \seq_if_empty:NT\l__ffbd_best_seq{
       \__ffbd_xtrack:n{(\l__ffbd_sx_fp+\l__ffbd_tx_fp)/2}

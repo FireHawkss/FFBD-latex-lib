@@ -132,8 +132,12 @@ corridor on the requested side. Annotations prefer the requested side and can
 move to another clear position; condition labels are placed beside their routes
 and checked against **all** arrows and other objects. Blocks stay fixed during
 routing. Normal forward flows use opposite input and output sides on each block,
-including branches that cross a wrapped-row boundary. This prevents drawing
-order or white label backgrounds from concealing collisions.
+including branches that cross a wrapped-row boundary. Routes never reverse over
+their straight port stub, so a wrap cannot leave a short apparent dead-end beside
+a block. Join inputs that leave their rows in the same direction use a shared
+horizontal (or vertical) trunk, giving all sibling inputs the same final bend
+position. These rules prevent drawing order or white label backgrounds from
+concealing collisions.
 
 Create a reusable organization theme with:
 
@@ -163,13 +167,13 @@ Create a reusable organization theme with:
 
 ## Prototype status
 
-Version 0.4 uses a deterministic measured layout and a bounded orthogonal
+Version 0.4.1 uses a deterministic measured layout and a bounded orthogonal
 router, remaining portable to pdfLaTeX without shell escape or external programs.
 Declare acyclic forward relationships and represent feedback using `\loopflow`;
 forward cycles produce an error. The router searches central and obstacle-edge
 corridors, then routes with extra bends. If none is clear it reports an error
 instead of drawing through an object. It is not a general maze solver and does
-not eliminate arrow-to-arrow crossings or shared branch/join trunks. Dense graphs
+not eliminate arrow-to-arrow crossings or shared branch trunks. Dense graphs
 may still benefit from a different wrap width or page orientation. Width fitting
 can shrink text; automatic page-size selection and pagination are not implemented.
 
@@ -194,5 +198,6 @@ The checks compile real diagrams and assert that measured objects do not overlap
 and that every arrow segment clears every object. Fixtures cover long text,
 skipped stages, annotations on all four sides, both directions, wrap boundaries,
 explicit row endings, branch-lane continuity, distinct input/output sides,
+non-reversing port stubs, aligned join trunks, narrow real-world layouts,
 transparent blocks, feedback, and the original examples. `layout-debug=true`
 emits geometry to the TeX log for diagnosis; it does not change the picture.
