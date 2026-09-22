@@ -1,0 +1,52 @@
+\documentclass[a4paper]{article}
+\usepackage[landscape,margin=16mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+
+\begin{document}
+\begin{ffbd}[
+    theme=slate,
+    wrap=true,
+    max-columns=8,
+    annotations=below
+]
+\start{start}{Drone state is deployed}
+\function{receive-zone}{Receive disaster zone coordinates}
+\function{move-to-disaster}{Move to disaster area}
+\function{init-scan}{Conduct initial scan}
+\function{gather-dmg-data}{Gather data about damage}
+\function{relay}{Relay data to HQ}
+\function{if-assigned}{If assigned a building}
+\function{if-not-assigned}{If not assigned a building}
+\function{auto-choose}{Automatically choose building}
+\function{move-to-building}{Move to building}
+\function{close-scan}{Scan building from close range}
+\function{if-survivor}{If survivor found}
+\function{if-no-survivor}{If no survivor found}
+\function{relay-info}{Relay information to HQ}
+\function{scan-state}{Check scan state}
+\function{if-scan-complete}{If building scan complete}
+\function{if-scan-not-complete}{If building scan not complete}
+\finish{end}{Drone state is returned to base}
+
+\flow{start}{receive-zone}
+\flow{receive-zone}{move-to-disaster}
+\flow{move-to-disaster}{init-scan}
+\flow{init-scan}{gather-dmg-data}
+\flow{gather-dmg-data}{relay}
+\branch[or]{relay}{if-assigned,if-not-assigned}
+\flow{if-not-assigned}{auto-choose}
+\join[or]{if-assigned,auto-choose}{move-to-building}
+\flow{move-to-building}{close-scan}
+\branch[or]{close-scan}{if-survivor,if-no-survivor}
+\flow{if-survivor}{relay-info}
+\join[or]{relay-info,if-no-survivor}{scan-state}
+\branch[or]{scan-state}{if-scan-complete,if-scan-not-complete}
+\flow{if-scan-complete}{end}
+\loopflow[condition={Repeat},side=below]{if-scan-not-complete}{close-scan}
+
+
+
+
+\end{ffbd}
+\end{document}
