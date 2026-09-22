@@ -17,6 +17,8 @@
 \prop_new:N \l__ffbd_stage_pos_prop
 \prop_new:N \l__ffbd_stage_turn_prop
 \seq_new:N \l__ffbd_obstacles_seq
+\seq_new:N \l__ffbd_structure_obstacles_seq
+\seq_new:N \l__ffbd_active_obstacles_seq
 \seq_new:N \l__ffbd_segments_seq
 \seq_new:N \l__ffbd_labels_seq
 \seq_new:N \l__ffbd_path_seq
@@ -28,6 +30,7 @@
 \int_new:N \l__ffbd_stage_int
 \int_new:N \l__ffbd_band_int
 \int_new:N \l__ffbd_loop_int
+\int_new:N \l__ffbd_port_int
 \fp_new:N \l__ffbd_lane_fp
 \fp_new:N \l__ffbd_gap_fp
 \fp_new:N \l__ffbd_cursor_fp
@@ -60,7 +63,22 @@
 \tl_new:N \l__ffbd_route_target_tl
 \tl_new:N \l__ffbd_side_tl
 \tl_new:N \l__ffbd_saved_side_tl
-\cs_generate_variant:Nn \prop_item:Nn {Ne}
+\tl_new:N \l__ffbd_route_structure_tl
+\tl_new:N \l__ffbd_source_structure_tl
+\tl_new:N \l__ffbd_target_structure_tl
+\tl_new:N \l__ffbd_port_tl
+\tl_new:N \l__ffbd_source_port_tl
+\tl_new:N \l__ffbd_target_port_tl
+\bool_new:N \l__ffbd_source_virtual_bool
+\bool_new:N \l__ffbd_target_virtual_bool
+\prop_new:N \l__ffbd_virtual_prop
+\prop_new:N \l__ffbd_structure_xmin_prop
+\prop_new:N \l__ffbd_structure_ymin_prop
+\prop_new:N \l__ffbd_structure_xmax_prop
+\prop_new:N \l__ffbd_structure_ymax_prop
+\prop_new:N \l__ffbd_annotation_x_prop
+\prop_new:N \l__ffbd_annotation_y_prop
+\cs_generate_variant:Nn \prop_item:Nn {NV,Ne}
 
 \cs_new_protected:Npn \__ffbd_node_text:n #1{
   \prop_get:NnN \l__ffbd_number_prop {#1}\l_tmpa_tl
@@ -120,6 +138,15 @@
   }{
     \fp_set:Nn \l__ffbd_lane_fp {\dim_to_fp:n{\l__ffbd_xsep_dim}}
     \fp_set:Nn \l__ffbd_gap_fp {max(\dim_to_fp:n{\l__ffbd_ysep_dim-11mm}-.75,\dim_to_fp:n{6mm})}
+  }
+  \seq_if_empty:NF\l__ffbd_structures_seq{
+    \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+      \fp_set:Nn\l__ffbd_gap_fp{max(\l__ffbd_gap_fp,\dim_to_fp:n{27mm})}
+      \fp_set:Nn\l__ffbd_lane_fp{max(\l__ffbd_lane_fp,\dim_to_fp:n{30mm})}
+    }{
+      \fp_set:Nn\l__ffbd_gap_fp{max(\l__ffbd_gap_fp,\dim_to_fp:n{32mm})}
+      \fp_set:Nn\l__ffbd_lane_fp{max(\l__ffbd_lane_fp,\dim_to_fp:n{43mm})}
+    }
   }
   \seq_map_inline:Nn \l__ffbd_nodes_seq {
     \tl_set:Nx \l_tmpa_tl {\prop_item:Nn\l__ffbd_rank_prop{##1}}
@@ -266,11 +293,13 @@
     \prop_put:NVx\l__ffbd_band_bottom_prop\l_tmpa_tl{\fp_eval:n{min(\l_tmpb_tl,\l__ffbd_ay_fp)}}
   }
   \fp_zero:N\l__ffbd_cursor_fp
+  \fp_set:Nn\l_tmpb_fp{\dim_to_fp:n{10mm}}
+  \seq_if_empty:NF\l__ffbd_structures_seq{\fp_set:Nn\l_tmpb_fp{\dim_to_fp:n{26mm}}}
   \int_step_inline:nnnn{0}{1}{\prop_count:N\l__ffbd_band_top_prop-1}{
     \int_compare:nNnT{##1}>{0}{
       \fp_add:Nn\l__ffbd_cursor_fp{
         -\prop_item:Ne\l__ffbd_band_bottom_prop{\int_eval:n{##1-1}}
-        +\prop_item:Nn\l__ffbd_band_top_prop{##1}+\dim_to_fp:n{10mm}}
+        +\prop_item:Nn\l__ffbd_band_top_prop{##1}+\l_tmpb_fp}
     }
     \prop_put:Nnx\l__ffbd_band_offset_prop{##1}{\fp_use:N\l__ffbd_cursor_fp}
   }
@@ -305,6 +334,86 @@
   \node[ffbd/\prop_item:Nn\l__ffbd_type_prop{#1}] (ffbd-#1)
     at (\fp_use:N\l__ffbd_x_fp,\fp_use:N\l__ffbd_y_fp){\__ffbd_node_text:n{#1}};
   \__ffbd_register:n{#1}
+}
+% Structures are derived from final member and annotation geometry, so metadata
+% remains outside its function block while staying inside the enclosing structure.
+\cs_new_protected:Npn \__ffbd_structure_overlap_check:nnnnn #1#2#3#4#5{
+  \fp_compare:nT{\l__ffbd_bx_fp>#2&&\l__ffbd_ax_fp<#4&&
+    \l__ffbd_by_fp>#3&&\l__ffbd_ay_fp<#5}
+    {\msg_error:nnnn{tikzffbd}{overlapping-structures}{\l__ffbd_structure_id_tl}{#1}}
+}
+\cs_new_protected:Npn \__ffbd_structure_bounds:n #1{
+  \fp_set:Nn\l__ffbd_ax_fp{inf}\fp_set:Nn\l__ffbd_ay_fp{inf}
+  \fp_set:Nn\l__ffbd_bx_fp{-inf}\fp_set:Nn\l__ffbd_by_fp{-inf}
+  \clist_set:Nx\l_tmpa_clist{\prop_item:Nn\l__ffbd_structure_members_prop{#1}}
+  \clist_map_inline:Nn\l_tmpa_clist{
+    \tl_set:Nx\l_tmpa_tl{\tl_trim_spaces:n{##1}}
+    \fp_set:Nn\l__ffbd_x_fp{\prop_item:NV\l__ffbd_x_prop\l_tmpa_tl}
+    \fp_set:Nn\l__ffbd_y_fp{\prop_item:NV\l__ffbd_y_prop\l_tmpa_tl}
+    \fp_set:Nn\l__ffbd_w_fp{\prop_item:NV\l__ffbd_w_prop\l_tmpa_tl}
+    \fp_set:Nn\l__ffbd_h_fp{\prop_item:NV\l__ffbd_h_prop\l_tmpa_tl}
+    \fp_set:Nn\l__ffbd_ax_fp{min(\l__ffbd_ax_fp,\l__ffbd_x_fp-\l__ffbd_w_fp/2)}
+    \fp_set:Nn\l__ffbd_ay_fp{min(\l__ffbd_ay_fp,\l__ffbd_y_fp-\l__ffbd_h_fp/2)}
+    \fp_set:Nn\l__ffbd_bx_fp{max(\l__ffbd_bx_fp,\l__ffbd_x_fp+\l__ffbd_w_fp/2)}
+    \fp_set:Nn\l__ffbd_by_fp{max(\l__ffbd_by_fp,\l__ffbd_y_fp+\l__ffbd_h_fp/2)}
+    \prop_if_in:NVT\l__ffbd_annotation_x_prop\l_tmpa_tl{
+      \fp_set:Nn\l__ffbd_x_fp{\prop_item:NV\l__ffbd_annotation_x_prop\l_tmpa_tl}
+      \fp_set:Nn\l__ffbd_y_fp{\prop_item:NV\l__ffbd_annotation_y_prop\l_tmpa_tl}
+      \fp_set:Nn\l__ffbd_w_fp{\prop_item:NV\l__ffbd_aw_prop\l_tmpa_tl}
+      \fp_set:Nn\l__ffbd_h_fp{\prop_item:NV\l__ffbd_ah_prop\l_tmpa_tl}
+      \fp_set:Nn\l__ffbd_ax_fp{min(\l__ffbd_ax_fp,\l__ffbd_x_fp-\l__ffbd_w_fp/2)}
+      \fp_set:Nn\l__ffbd_ay_fp{min(\l__ffbd_ay_fp,\l__ffbd_y_fp-\l__ffbd_h_fp/2)}
+      \fp_set:Nn\l__ffbd_bx_fp{max(\l__ffbd_bx_fp,\l__ffbd_x_fp+\l__ffbd_w_fp/2)}
+      \fp_set:Nn\l__ffbd_by_fp{max(\l__ffbd_by_fp,\l__ffbd_y_fp+\l__ffbd_h_fp/2)}
+    }
+  }
+  \fp_sub:Nn\l__ffbd_ax_fp{\dim_to_fp:n{6mm}}
+  \fp_sub:Nn\l__ffbd_ay_fp{\dim_to_fp:n{6mm}}
+  \fp_add:Nn\l__ffbd_bx_fp{\dim_to_fp:n{6mm}}
+  \fp_add:Nn\l__ffbd_by_fp{\dim_to_fp:n{10mm}}
+  \tl_set:Nn\l__ffbd_structure_id_tl{#1}
+  \seq_map_inline:Nn\l__ffbd_structure_obstacles_seq
+    {\__ffbd_structure_overlap_check:nnnnn ##1}
+  \prop_put:Nnx\l__ffbd_structure_xmin_prop{#1}{\fp_use:N\l__ffbd_ax_fp}
+  \prop_put:Nnx\l__ffbd_structure_ymin_prop{#1}{\fp_use:N\l__ffbd_ay_fp}
+  \prop_put:Nnx\l__ffbd_structure_xmax_prop{#1}{\fp_use:N\l__ffbd_bx_fp}
+  \prop_put:Nnx\l__ffbd_structure_ymax_prop{#1}{\fp_use:N\l__ffbd_by_fp}
+  \seq_put_right:Nx\l__ffbd_structure_obstacles_seq
+    {{#1}{\fp_use:N\l__ffbd_ax_fp}{\fp_use:N\l__ffbd_ay_fp}
+      {\fp_use:N\l__ffbd_bx_fp}{\fp_use:N\l__ffbd_by_fp}}
+  \bool_if:NT\l__ffbd_trace_bool{\iow_term:x{FFBD~STRUCT~#1\c_space_tl
+    \fp_use:N\l__ffbd_ax_fp\c_space_tl\fp_use:N\l__ffbd_ay_fp\c_space_tl
+    \fp_use:N\l__ffbd_bx_fp\c_space_tl\fp_use:N\l__ffbd_by_fp}}
+}
+\cs_new_protected:Npn \__ffbd_draw_structure:n #1{
+  \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_structure_xmin_prop{#1}}
+  \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_structure_ymin_prop{#1}}
+  \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_structure_xmax_prop{#1}}
+  \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_structure_ymax_prop{#1}}
+  \begin{scope}[on~background~layer]
+    \path[ffbd/structure/\prop_item:Nn\l__ffbd_structure_style_prop{#1}]
+      (\fp_use:N\l__ffbd_ax_fp,\fp_use:N\l__ffbd_ay_fp) rectangle
+      (\fp_use:N\l__ffbd_bx_fp,\fp_use:N\l__ffbd_by_fp);
+    \node[ffbd/structure-type] at
+      (\fp_eval:n{\l__ffbd_ax_fp+\dim_to_fp:n{3mm}},
+       \fp_eval:n{\l__ffbd_by_fp-\dim_to_fp:n{3mm}})
+      {\prop_item:Nn\l__ffbd_structure_type_prop{#1}};
+    \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_structure_info_prop{#1}}
+    \tl_if_blank:VF\l_tmpa_tl{
+      \node[ffbd/structure-info] at
+        (\fp_eval:n{(\l__ffbd_ax_fp+\l__ffbd_bx_fp)/2},
+         \fp_eval:n{\l__ffbd_by_fp-\dim_to_fp:n{3mm}}){\l_tmpa_tl};
+    }
+  \end{scope}
+}
+\cs_new_protected:Npn \__ffbd_structure_geometry:{
+  \seq_clear:N\l__ffbd_structure_obstacles_seq
+  \prop_clear:N\l__ffbd_structure_xmin_prop
+  \prop_clear:N\l__ffbd_structure_ymin_prop
+  \prop_clear:N\l__ffbd_structure_xmax_prop
+  \prop_clear:N\l__ffbd_structure_ymax_prop
+  \seq_map_inline:Nn\l__ffbd_structures_seq{\__ffbd_structure_bounds:n{##1}}
+  \seq_map_inline:Nn\l__ffbd_structures_seq{\__ffbd_draw_structure:n{##1}}
 }
 \cs_new_protected:Npn \__ffbd_rect_check:nnnnn #1#2#3#4#5{
   \fp_compare:nT{
@@ -376,6 +485,8 @@
   }
   \bool_if:NTF\l__ffbd_found_bool{
     \node[ffbd/annotation] at (\fp_use:N\l__ffbd_x_fp,\fp_use:N\l__ffbd_y_fp){#2};
+    \prop_put:Nnx\l__ffbd_annotation_x_prop{#1}{\fp_use:N\l__ffbd_x_fp}
+    \prop_put:Nnx\l__ffbd_annotation_y_prop{#1}{\fp_use:N\l__ffbd_y_fp}
     \__ffbd_register:n{annotation-#1}
   }{\msg_error:nnn{tikzffbd}{placement}{annotation-#1}}
 }
@@ -395,7 +506,7 @@
   \fp_set:Nn\l__ffbd_qx_fp{#1}\fp_set:Nn\l__ffbd_qy_fp{#2}
   \fp_add:Nn\l__ffbd_length_fp{abs(#1-\l__ffbd_px_fp)+abs(#2-\l__ffbd_py_fp)}
   \bool_if:NT\l__ffbd_clear_bool{
-    \seq_map_inline:Nn\l__ffbd_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
+    \seq_map_inline:Nn\l__ffbd_active_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
   }
   \fp_set_eq:NN\l__ffbd_px_fp\l__ffbd_qx_fp
   \fp_set_eq:NN\l__ffbd_py_fp\l__ffbd_qy_fp
@@ -458,9 +569,73 @@
   \seq_put_right:Nx\l__ffbd_ytracks_seq{\fp_eval:n{#3-\l__ffbd_clearance_fp}}
   \seq_put_right:Nx\l__ffbd_ytracks_seq{\fp_eval:n{#5+\l__ffbd_clearance_fp}}
 }
+\cs_new_protected:Npn \__ffbd_member_structure:nN #1#2{
+  \prop_get:NnNTF\l__ffbd_member_structure_prop{#1}#2{}{\tl_clear:N#2}
+}
+\cs_new_protected:Npn \__ffbd_build_route_obstacles:{
+  \seq_set_eq:NN\l__ffbd_active_obstacles_seq\l__ffbd_obstacles_seq
+  \seq_map_inline:Nn\l__ffbd_structures_seq{
+    \tl_set:Nn\l_tmpa_tl{##1}
+    \tl_if_eq:NNF\l_tmpa_tl\l__ffbd_route_structure_tl{
+      \seq_put_right:Nx\l__ffbd_active_obstacles_seq
+        {{##1}{\prop_item:Nn\l__ffbd_structure_xmin_prop{##1}}
+          {\prop_item:Nn\l__ffbd_structure_ymin_prop{##1}}
+          {\prop_item:Nn\l__ffbd_structure_xmax_prop{##1}}
+          {\prop_item:Nn\l__ffbd_structure_ymax_prop{##1}}}
+    }
+  }
+}
+\cs_new_protected:Npn \__ffbd_validate_structure_port:nnnn #1#2#3#4{
+  \str_if_eq:nnTF{#4}{input}
+    {\prop_get:NnN\l__ffbd_structure_inputs_prop{#3}\l_tmpa_tl}
+    {\prop_get:NnN\l__ffbd_structure_outputs_prop{#3}\l_tmpa_tl}
+  \clist_set:Nx\l_tmpa_clist{\l_tmpa_tl}
+  \tl_set:Nn\l_tmpb_tl{#1}
+  \clist_if_in:NVF\l_tmpa_clist\l_tmpb_tl
+    {\msg_error:nnnnn{tikzffbd}{bad-structure-port}{#1}{#2}{#3}}
+}
+% Create a zero-size routing node on the finished structure border. The member
+% supplies the secondary coordinate, clamped away from corners and the header.
+\cs_new_protected:Npn \__ffbd_make_port:nnnn #1#2#3#4{
+  \int_incr:N\l__ffbd_port_int
+  \tl_set:Nx\l__ffbd_port_tl{@p\int_use:N\l__ffbd_port_int}
+  \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_structure_xmin_prop{#1}}
+  \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_structure_ymin_prop{#1}}
+  \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_structure_xmax_prop{#1}}
+  \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_structure_ymax_prop{#1}}
+  \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+    \fp_set:Nn\l__ffbd_x_fp{\l__ffbd_ax_fp}
+    \fp_compare:nT{\prop_item:Nn\l__ffbd_x_prop{#4}>(\l__ffbd_ax_fp+\l__ffbd_bx_fp)/2}
+      {\fp_set_eq:NN\l__ffbd_x_fp\l__ffbd_bx_fp}
+    \fp_set:Nn\l__ffbd_y_fp{max(\l__ffbd_ay_fp+\dim_to_fp:n{4mm},
+      min(\prop_item:Nn\l__ffbd_y_prop{#2},\l__ffbd_by_fp-\dim_to_fp:n{7mm}))}
+  }{
+    \fp_set:Nn\l__ffbd_y_fp{\l__ffbd_ay_fp}
+    \fp_compare:nT{\prop_item:Nn\l__ffbd_y_prop{#4}>(\l__ffbd_ay_fp+\l__ffbd_by_fp)/2}
+      {\fp_set_eq:NN\l__ffbd_y_fp\l__ffbd_by_fp}
+    \fp_set:Nn\l__ffbd_x_fp{max(\l__ffbd_ax_fp+\dim_to_fp:n{4mm},
+      min(\prop_item:Nn\l__ffbd_x_prop{#2},\l__ffbd_bx_fp-\dim_to_fp:n{4mm}))}
+    \fp_compare:nT{abs(\l__ffbd_y_fp-\l__ffbd_by_fp)<.01}
+      {\fp_set:Nn\l__ffbd_x_fp{\l__ffbd_bx_fp-\dim_to_fp:n{4mm}}}
+  }
+  \prop_put:NVx\l__ffbd_x_prop\l__ffbd_port_tl{\fp_use:N\l__ffbd_x_fp}
+  \prop_put:NVx\l__ffbd_y_prop\l__ffbd_port_tl{\fp_use:N\l__ffbd_y_fp}
+  \prop_put:NVn\l__ffbd_w_prop\l__ffbd_port_tl{0}
+  \prop_put:NVn\l__ffbd_h_prop\l__ffbd_port_tl{0}
+  \prop_put:NVn\l__ffbd_virtual_prop\l__ffbd_port_tl{1}
+  \bool_if:NT\l__ffbd_trace_bool{\iow_term:x{FFBD~PORT~\l__ffbd_port_tl\c_space_tl
+    #1\c_space_tl#2\c_space_tl#3\c_space_tl
+    \fp_use:N\l__ffbd_x_fp\c_space_tl\fp_use:N\l__ffbd_y_fp}}
+}
+\cs_generate_variant:Nn \__ffbd_validate_structure_port:nnnn {nnVn}
+\cs_generate_variant:Nn \__ffbd_make_port:nnnn {Vnnn}
 % Start/end ports follow the flow direction; feedback uses a side port so
 % its escape segment cannot run through another block in the same lane.
 \cs_new_protected:Npn \__ffbd_ports:nn #1#2{
+  \bool_set_false:N\l__ffbd_source_virtual_bool
+  \bool_set_false:N\l__ffbd_target_virtual_bool
+  \prop_if_in:NnT\l__ffbd_virtual_prop{#1}{\bool_set_true:N\l__ffbd_source_virtual_bool}
+  \prop_if_in:NnT\l__ffbd_virtual_prop{#2}{\bool_set_true:N\l__ffbd_target_virtual_bool}
   \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_x_prop{#1}}
   \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_y_prop{#1}}
   \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_x_prop{#2}}
@@ -516,8 +691,19 @@
       \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
     }
   }
-  % A straight edge has no bend to protect.  If the gap is shorter than two
-  % full stubs, meet at its midpoint instead of making the path double back.
+  % A structure boundary is a zero-size port: only the real block endpoint
+  % needs the configured straight stub.
+  \tl_if_blank:VF\l__ffbd_route_structure_tl{
+    \bool_if:NT\l__ffbd_source_virtual_bool{
+      \fp_set_eq:NN\l__ffbd_sx_fp\l__ffbd_ax_fp
+      \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp}
+    \bool_if:NT\l__ffbd_target_virtual_bool{
+      \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
+      \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp}
+  }
+  % A straight ordinary edge has no bend to protect. If the gap is shorter
+  % than two full stubs, meet at its midpoint instead of doubling back.
+  \bool_if:nT{!\l__ffbd_source_virtual_bool&&!\l__ffbd_target_virtual_bool}{
   \tl_if_blank:VT\l__ffbd_saved_side_tl{
     \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
       \fp_compare:nT{
@@ -540,6 +726,7 @@
         \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
       }
     }
+  }
   }
 }
 \cs_new_protected:Npn \__ffbd_vertical_ports:nn #1#2{
@@ -571,8 +758,9 @@
   \tl_set:Nn\l__ffbd_route_source_tl{#1}\tl_set:Nn\l__ffbd_route_target_tl{#2}
   \__ffbd_ports:nn{#1}{#2}
   \fp_set:Nn\l__ffbd_clearance_fp{\dim_to_fp:n{1.5mm}}
+  \__ffbd_build_route_obstacles:
   \seq_clear:N\l__ffbd_xtracks_seq \seq_clear:N\l__ffbd_ytracks_seq
-  \seq_map_inline:Nn\l__ffbd_obstacles_seq{\__ffbd_tracks:nnnnn ##1}
+  \seq_map_inline:Nn\l__ffbd_active_obstacles_seq{\__ffbd_tracks:nnnnn ##1}
   \seq_clear:N\l__ffbd_best_seq \fp_set:Nn\l__ffbd_best_length_fp{inf}
   \tl_if_blank:VTF\l__ffbd_saved_side_tl{
     % A wrapped split shares a single outside bus for all destination lanes.
@@ -595,20 +783,30 @@
     }
   }{
     \int_incr:N\l__ffbd_loop_int
-    \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
-      \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}{
-        \fp_set:Nn\l__ffbd_outer_fp{max(\seq_use:Nn\l__ffbd_ytracks_seq{,})+\l__ffbd_loop_int*\dim_to_fp:n{6mm}}
+    \tl_if_blank:VTF\l__ffbd_route_structure_tl{
+      \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+        \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}
+          {\fp_set:Nn\l__ffbd_outer_fp{max(\seq_use:Nn\l__ffbd_ytracks_seq{,})+\l__ffbd_loop_int*\dim_to_fp:n{6mm}}}
+          {\fp_set:Nn\l__ffbd_outer_fp{min(\seq_use:Nn\l__ffbd_ytracks_seq{,})-\l__ffbd_loop_int*\dim_to_fp:n{6mm}}}
+        \__ffbd_ytrack:n{\l__ffbd_outer_fp}
       }{
-        \fp_set:Nn\l__ffbd_outer_fp{min(\seq_use:Nn\l__ffbd_ytracks_seq{,})-\l__ffbd_loop_int*\dim_to_fp:n{6mm}}
+        \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}
+          {\fp_set:Nn\l__ffbd_outer_fp{min(\seq_use:Nn\l__ffbd_xtracks_seq{,})-\l__ffbd_loop_int*\dim_to_fp:n{6mm}}}
+          {\fp_set:Nn\l__ffbd_outer_fp{max(\seq_use:Nn\l__ffbd_xtracks_seq{,})+\l__ffbd_loop_int*\dim_to_fp:n{6mm}}}
+        \__ffbd_xtrack:n{\l__ffbd_outer_fp}
       }
-      \__ffbd_ytrack:n{\l__ffbd_outer_fp}
     }{
-      \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}{
-        \fp_set:Nn\l__ffbd_outer_fp{min(\seq_use:Nn\l__ffbd_xtracks_seq{,})-\l__ffbd_loop_int*\dim_to_fp:n{6mm}}
+      \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
+        \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}
+          {\fp_set:Nn\l__ffbd_outer_fp{\prop_item:NV\l__ffbd_structure_ymax_prop\l__ffbd_route_structure_tl-\dim_to_fp:n{5mm}}}
+          {\fp_set:Nn\l__ffbd_outer_fp{\prop_item:NV\l__ffbd_structure_ymin_prop\l__ffbd_route_structure_tl+\dim_to_fp:n{3mm}}}
+        \__ffbd_ytrack:n{\l__ffbd_outer_fp}
       }{
-        \fp_set:Nn\l__ffbd_outer_fp{max(\seq_use:Nn\l__ffbd_xtracks_seq{,})+\l__ffbd_loop_int*\dim_to_fp:n{6mm}}
+        \str_if_eq:VnTF\l__ffbd_saved_side_tl{above}
+          {\fp_set:Nn\l__ffbd_outer_fp{\prop_item:NV\l__ffbd_structure_xmin_prop\l__ffbd_route_structure_tl+\dim_to_fp:n{3mm}}}
+          {\fp_set:Nn\l__ffbd_outer_fp{\prop_item:NV\l__ffbd_structure_xmax_prop\l__ffbd_route_structure_tl-\dim_to_fp:n{3mm}}}
+        \__ffbd_xtrack:n{\l__ffbd_outer_fp}
       }
-      \__ffbd_xtrack:n{\l__ffbd_outer_fp}
     }
   }
   \seq_if_empty:NT\l__ffbd_best_seq{
@@ -626,10 +824,10 @@
   \bool_set_true:N\l__ffbd_clear_bool
   \fp_set_eq:NN\l__ffbd_px_fp\l__ffbd_ax_fp \fp_set_eq:NN\l__ffbd_py_fp\l__ffbd_ay_fp
   \fp_set_eq:NN\l__ffbd_qx_fp\l__ffbd_sx_fp \fp_set_eq:NN\l__ffbd_qy_fp\l__ffbd_sy_fp
-  \seq_map_inline:Nn\l__ffbd_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
+  \seq_map_inline:Nn\l__ffbd_active_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
   \fp_set_eq:NN\l__ffbd_px_fp\l__ffbd_tx_fp \fp_set_eq:NN\l__ffbd_py_fp\l__ffbd_ty_fp
   \fp_set_eq:NN\l__ffbd_qx_fp\l__ffbd_bx_fp \fp_set_eq:NN\l__ffbd_qy_fp\l__ffbd_by_fp
-  \seq_map_inline:Nn\l__ffbd_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
+  \seq_map_inline:Nn\l__ffbd_active_obstacles_seq{\__ffbd_segment_check:nnnnn ##1}
   \bool_if:NF\l__ffbd_clear_bool{\seq_clear:N\l__ffbd_best_seq}
   \seq_if_empty:NTF\l__ffbd_best_seq{\msg_error:nnnn{tikzffbd}{route}{#1}{#2}}{
     \seq_put_left:Nx\l__ffbd_best_seq{{\fp_use:N\l__ffbd_sx_fp}{\fp_use:N\l__ffbd_sy_fp}}
@@ -644,10 +842,52 @@
     }
   }
 }
+\cs_generate_variant:Nn \__ffbd_route:nnn {nVn,Vnn,VVn}
 \cs_new_protected:Npn \__ffbd_draw_flow:nnn #1#2#3{
-  \tl_clear:N\l__ffbd_saved_side_tl \__ffbd_route:nnn{#1}{#2}{#3}}
+  \tl_clear:N\l__ffbd_saved_side_tl
+  \__ffbd_member_structure:nN{#1}\l__ffbd_source_structure_tl
+  \__ffbd_member_structure:nN{#2}\l__ffbd_target_structure_tl
+  \tl_if_eq:NNTF\l__ffbd_source_structure_tl\l__ffbd_target_structure_tl{
+    \tl_set_eq:NN\l__ffbd_route_structure_tl\l__ffbd_source_structure_tl
+    \__ffbd_route:nnn{#1}{#2}{#3}
+  }{
+    \tl_clear:N\l__ffbd_source_port_tl
+    \tl_clear:N\l__ffbd_target_port_tl
+    \tl_if_blank:VF\l__ffbd_source_structure_tl{
+      \__ffbd_validate_structure_port:nnVn{#1}{#2}\l__ffbd_source_structure_tl{output}
+      \__ffbd_make_port:Vnnn\l__ffbd_source_structure_tl{#1}{output}{#2}
+      \tl_set_eq:NN\l__ffbd_source_port_tl\l__ffbd_port_tl
+      \tl_set_eq:NN\l__ffbd_route_structure_tl\l__ffbd_source_structure_tl
+      \__ffbd_route:nVn{#1}\l__ffbd_source_port_tl{}
+    }
+    \tl_if_blank:VF\l__ffbd_target_structure_tl{
+      \__ffbd_validate_structure_port:nnVn{#2}{#1}\l__ffbd_target_structure_tl{input}
+      \__ffbd_make_port:Vnnn\l__ffbd_target_structure_tl{#2}{input}{#1}
+      \tl_set_eq:NN\l__ffbd_target_port_tl\l__ffbd_port_tl
+    }
+    \tl_clear:N\l__ffbd_route_structure_tl
+    \tl_if_blank:VTF\l__ffbd_source_structure_tl{
+      \__ffbd_route:nVn{#1}\l__ffbd_target_port_tl{#3}
+    }{
+      \tl_if_blank:VTF\l__ffbd_target_structure_tl
+        {\__ffbd_route:Vnn\l__ffbd_source_port_tl{#2}{#3}}
+        {\__ffbd_route:VVn\l__ffbd_source_port_tl\l__ffbd_target_port_tl{#3}}
+    }
+    \tl_if_blank:VF\l__ffbd_target_structure_tl{
+      \tl_set_eq:NN\l__ffbd_route_structure_tl\l__ffbd_target_structure_tl
+      \__ffbd_route:Vnn\l__ffbd_target_port_tl{#2}{}
+    }
+  }
+}
 \cs_new_protected:Npn \__ffbd_draw_loop:nnnn #1#2#3#4{
-  \tl_set:Nn\l__ffbd_saved_side_tl{#4}\__ffbd_route:nnn{#1}{#2}{#3}}
+  \tl_set:Nn\l__ffbd_saved_side_tl{#4}
+  \__ffbd_member_structure:nN{#1}\l__ffbd_source_structure_tl
+  \__ffbd_member_structure:nN{#2}\l__ffbd_target_structure_tl
+  \tl_clear:N\l__ffbd_route_structure_tl
+  \tl_if_eq:NNT\l__ffbd_source_structure_tl\l__ffbd_target_structure_tl
+    {\tl_set_eq:NN\l__ffbd_route_structure_tl\l__ffbd_source_structure_tl}
+  \__ffbd_route:nnn{#1}{#2}{#3}
+}
 % Labels are placed last, alongside the longest segment. Their rectangles
 % must clear every block, annotation, earlier label AND every routed line.
 \cs_new_protected:Npn \__ffbd_label_segment:nn #1#2{
@@ -706,11 +946,14 @@
   \__ffbd_styles: \__ffbd_measure: \__ffbd_layout:
   \seq_clear:N\l__ffbd_obstacles_seq \seq_clear:N\l__ffbd_segments_seq
   \seq_clear:N\l__ffbd_labels_seq \int_zero:N\l__ffbd_loop_int
+  \int_zero:N\l__ffbd_port_int \prop_clear:N\l__ffbd_virtual_prop
+  \prop_clear:N\l__ffbd_annotation_x_prop \prop_clear:N\l__ffbd_annotation_y_prop
   \hbox_set:Nn\l__ffbd_box{
     \begin{tikzpicture}[x=1pt,y=1pt,baseline=(current~bounding~box.center)]
       \bool_if:NT\l__ffbd_trace_bool{\iow_term:n{FFBD~BEGIN}}
       \seq_map_inline:Nn\l__ffbd_nodes_seq{\__ffbd_draw_node:n{##1}}
       \prop_map_inline:Nn\l__ffbd_annotation_prop{\__ffbd_draw_annotation:nn{##1}{##2}}
+      \__ffbd_structure_geometry:
       \seq_map_inline:Nn\l__ffbd_flows_seq{\__ffbd_draw_flow:nnn ##1}
       \seq_map_inline:Nn\l__ffbd_loops_seq{\__ffbd_draw_loop:nnnn ##1}
       \seq_map_inline:Nn\l__ffbd_labels_seq{\__ffbd_draw_label:nn ##1}

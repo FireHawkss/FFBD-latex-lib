@@ -44,6 +44,30 @@ display them. Functions are numbered automatically; override a number with
 Branches and joins create labeled logical connectors automatically. Branch
 destinations can carry edge labels using `id={Label}`.
 
+Group existing functions into a loop, sub-function, or custom structure with:
+
+```latex
+\structure[
+  type={While loop},
+  info={while data is invalid},
+  style=shaded,
+  inputs={load},
+  outputs={validate}
+]{retry-cycle}{load,validate}
+```
+
+The member list defines the container. `type` appears at its upper-left and
+optional `info` (also spelled `condition`) appears at the top center. Styles are
+`plain`, `dashed`, and lightly `shaded`. A function can belong to one structure.
+Member annotations remain outside their function blocks but are included in the
+container bounds.
+
+Flows keep their normal declaration syntax. When a flow crosses a container,
+its member endpoint must be listed in `inputs` or `outputs` as appropriate; the
+renderer then splits the arrow at a geometry-derived boundary port. Invalid
+crossings produce a package error. Structures are route obstacles for unrelated
+flows, while internal `\loopflow` feedback stays inside its structure.
+
 External annotations are available as:
 
 ```latex
@@ -123,10 +147,12 @@ Create a reusable organization theme with:
   connectors, parallel paths, annotations, and a loop.
 - `examples/customization.tex`: a custom palette, vertical direction,
   transparent blocks, serif text, and heavy lines.
+- `examples/structures.tex`: shaded and dashed containers, declared boundary
+  ports, structure-to-structure flow, internal feedback, and an external bypass.
 
 ## Prototype status
 
-Version 0.2 uses a deterministic measured layout and a bounded orthogonal
+Version 0.3 uses a deterministic measured layout and a bounded orthogonal
 router, remaining portable to pdfLaTeX without shell escape or external programs.
 Declare acyclic forward relationships and represent feedback using `\loopflow`;
 forward cycles produce an error. The router searches central and obstacle-edge

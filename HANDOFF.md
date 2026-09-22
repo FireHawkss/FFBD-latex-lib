@@ -54,7 +54,7 @@ arbitrary manual control.
 
 ## Current implementation
 
-The prototype is version `0.2.0`; its public API lives in `tikzffbd.sty`
+The prototype is version `0.3.0`; its public API lives in `tikzffbd.sty`
 and the measured layout engine in `tikzffbd-layout.code.tex`.
 
 The public short commands are installed locally inside an `ffbd` environment,
@@ -85,11 +85,16 @@ Implemented public commands:
 - `\branch[and|or]{<source>}{<target-list>}`
 - `\join[and|or]{<source-list>}{<target>}`
 - `\loopflow[condition={<text>},side=above|below]{<source>}{<target>}`
+- `\structure[<options>]{<id>}{<member-list>}`
 - `\precondition{<id>}{<text>}`
 - `\timing{<id>}{<text>}`
 - `\note{<id>}{<text>}`
 - `\annotation[<type>]{<id>}{<text>}`
 - `\ffbdDeclareTheme{<name>}{<theme keys>}`
+
+`\structure` creates a one-level container around existing functions. It
+supports custom type/info text, plain/dashed/shaded styles, declared input and
+output members, automatic boundary ports, and context-aware routing.
 
 Branch targets can carry conditions directly:
 
@@ -99,6 +104,28 @@ Branch targets can carry conditions directly:
 
 Function numbering is automatic. Use `number=2.3` to override it or
 `number=none` to suppress it.
+
+## General structures and loop containers
+
+Version 0.3 implements rounded containers for loops, decomposed functions, and
+custom structures. Members and their annotations determine the measured bounds;
+the header reserves extra top space. `type` is drawn at upper-left, optional
+`info`/`condition` at top center, and `style` accepts `plain`, `dashed`, or the
+lightly filled `shaded` default.
+
+`inputs` and `outputs` declare which members can participate in external flows.
+Normal `\flow` declarations are split automatically at geometry-derived boundary
+ports. Invalid crossings raise a package error. Unrelated containers participate
+in obstacle routing, while internal routes exclude their own container. Internal
+`\loopflow` feedback uses a corridor inside the shared structure. Membership is
+one level: a function can belong to at most one structure, and finished structure
+rectangles must not overlap.
+
+The acceptance specimen is `examples/structures.tex`. Debug geometry uses
+separate `FFBD STRUCT` and `FFBD PORT` records. Regression checks cover member and
+annotation containment, ports on borders, minimum real-block stubs, unrelated
+structure avoidance, internal-loop containment, horizontal and vertical layouts,
+and undeclared crossing diagnostics.
 
 ## Layout architecture
 
@@ -139,7 +166,7 @@ Implementation is split between the public API/styles in `tikzffbd.sty` and
 
 ## Verification already performed
 
-All three examples compile successfully with the installed pdfLaTeX/TeX Live
+All four examples compile successfully with the installed pdfLaTeX/TeX Live
 2023 toolchain:
 
 ```sh
@@ -150,20 +177,15 @@ TEXINPUTS=.: pdflatex -interaction=nonstopmode -halt-on-error \
   -output-directory=build examples/complex.tex
 TEXINPUTS=.: pdflatex -interaction=nonstopmode -halt-on-error \
   -output-directory=build examples/customization.tex
+TEXINPUTS=.: pdflatex -interaction=nonstopmode -halt-on-error \
+  -output-directory=build examples/structures.tex
 ```
 
-The original builds had no typesetting warnings. The revised wrapped complex
-specimen occupies more than 80 percent of the text height and triggers the
-package height advisory, but fits on one page without overfull/underfull boxes. `git diff --check` passes.
-
-The basic example also compiles successfully with LuaLaTeX. XeLaTeX was not
-installed in the development environment and has not been tested.
-
-Generated review files currently exist at:
-
-- `build/basic.pdf`
-- `build/complex.pdf`
-- `build/customization.pdf`
+The complete `python3 tests/check_layout.py --lua` suite passes without
+geometry or typesetting warnings, and `git diff --check` passes. The suite runs
+all examples with pdfLaTeX and the complex specimen with LuaLaTeX. XeLaTeX is
+not installed in the development environment and has not been tested. Scratch
+PDFs and logs are written below `build/tests/` and remain ignored.
 
 ## Layout revision after visual review
 
@@ -185,7 +207,6 @@ two-row drawing. The original basic diagram retains its nominal 36mm pitch.
   cover pdfLaTeX and LuaLaTeX; XeLaTeX and Overleaf have not been exercised here.
 - A `.dtx`/`.ins` distribution, license, and CTAN packaging remain future work.
 
-All 22 checks in `python3 tests/check_layout.py --lua` pass, including geometry,
-the unchanged basic pitch, multiple diagrams, and cycle diagnostics. All four
-tracked review PDFs have been rebuilt. Scratch builds remain ignored; source
-changes are left uncommitted for review.
+The structure implementation and its acceptance example now pass the pdfLaTeX
+geometry suite in both horizontal and vertical directions. The complete
+`python3 tests/check_layout.py --lua` run should remain the final release check.

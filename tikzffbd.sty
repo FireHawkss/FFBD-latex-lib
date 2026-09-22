@@ -1,12 +1,12 @@
 %% tikzffbd.sty -- Functional Flow Block Diagrams without low-level TikZ
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage{tikzffbd}{2026-09-21}{0.2.0}
+\ProvidesExplPackage{tikzffbd}{2026-09-22}{0.3.0}
   {Automatic, polished Functional Flow Block Diagrams}
 
 \ExplSyntaxOff
 \RequirePackage{tikz}
 \RequirePackage{graphicx}
-\usetikzlibrary{arrows.meta,calc,positioning}
+\usetikzlibrary{arrows.meta,backgrounds,calc,positioning}
 \ExplSyntaxOn
 
 % Messages
@@ -17,6 +17,18 @@
 \msg_new:nnn {tikzffbd}{theme}{Theme~'#1'~is~unknown;~using~ocean.}
 \msg_new:nnn {tikzffbd}{tall}
   {Diagram~height~#1~exceeds~80~percent~of~the~text~height.}
+\msg_new:nnn {tikzffbd}{duplicate-structure}
+  {Structure~identifier~'#1'~is~already~declared.}
+\msg_new:nnn {tikzffbd}{empty-structure}
+  {Structure~'#1'~must~contain~at~least~one~function.}
+\msg_new:nnn {tikzffbd}{overlapping-structures}
+  {Structures~'#1'~and~'#2'~overlap.~Use~disjoint~groups~or~increase~spacing.}
+\msg_new:nnn {tikzffbd}{member-structure}
+  {Function~'#1'~already~belongs~to~structure~'#2'.}
+\msg_new:nnn {tikzffbd}{not-member}
+  {Port~function~'#1'~is~not~a~member~of~structure~'#2'.}
+\msg_new:nnn {tikzffbd}{bad-structure-port}
+  {Flow~'#1'~to~'#2'~crosses~structure~'#3'~through~an~undeclared~port.}
 
 % Palettes
 \definecolor{ffbdOceanFunction}{HTML}{DCEAF4}
@@ -161,6 +173,14 @@
 \prop_new:N \l__ffbd_x_prop
 \prop_new:N \l__ffbd_y_prop
 \prop_new:N \l__ffbd_annotation_prop
+\seq_new:N \l__ffbd_structures_seq
+\prop_new:N \l__ffbd_structure_type_prop
+\prop_new:N \l__ffbd_structure_info_prop
+\prop_new:N \l__ffbd_structure_style_prop
+\prop_new:N \l__ffbd_structure_members_prop
+\prop_new:N \l__ffbd_structure_inputs_prop
+\prop_new:N \l__ffbd_structure_outputs_prop
+\prop_new:N \l__ffbd_member_structure_prop
 \int_new:N \l__ffbd_number_int
 \int_new:N \l__ffbd_connector_int
 \int_new:N \l__ffbd_lanes_int
@@ -175,6 +195,14 @@
   \prop_clear:N \l__ffbd_type_prop
   \prop_clear:N \l__ffbd_rank_prop
   \prop_clear:N \l__ffbd_annotation_prop
+  \seq_clear:N \l__ffbd_structures_seq
+  \prop_clear:N \l__ffbd_structure_type_prop
+  \prop_clear:N \l__ffbd_structure_info_prop
+  \prop_clear:N \l__ffbd_structure_style_prop
+  \prop_clear:N \l__ffbd_structure_members_prop
+  \prop_clear:N \l__ffbd_structure_inputs_prop
+  \prop_clear:N \l__ffbd_structure_outputs_prop
+  \prop_clear:N \l__ffbd_member_structure_prop
   \int_zero:N \l__ffbd_number_int
   \int_zero:N \l__ffbd_connector_int
 }
@@ -222,6 +250,77 @@
   {\__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}}
 \NewDocumentCommand \ffbdFinish {O{}mm}
   {\__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}}
+
+% Containers for loops, decomposed functions, and custom subsystems.
+\tl_new:N \l__ffbd_structure_type_tl
+\tl_new:N \l__ffbd_structure_info_tl
+\tl_new:N \l__ffbd_structure_style_tl
+\tl_new:N \l__ffbd_structure_id_tl
+\clist_new:N \l__ffbd_structure_members_clist
+\clist_new:N \l__ffbd_structure_inputs_clist
+\clist_new:N \l__ffbd_structure_outputs_clist
+\keys_define:nn {tikzffbd/structure}{
+  type .tl_set:N=\l__ffbd_structure_type_tl,
+  info .tl_set:N=\l__ffbd_structure_info_tl,
+  condition .tl_set:N=\l__ffbd_structure_info_tl,
+  inputs .clist_set:N=\l__ffbd_structure_inputs_clist,
+  input .clist_set:N=\l__ffbd_structure_inputs_clist,
+  outputs .clist_set:N=\l__ffbd_structure_outputs_clist,
+  output .clist_set:N=\l__ffbd_structure_outputs_clist,
+  style .choice:,
+  style/shaded .code:n={\tl_set:Nn\l__ffbd_structure_style_tl{shaded}},
+  style/dashed .code:n={\tl_set:Nn\l__ffbd_structure_style_tl{dashed}},
+  style/plain .code:n={\tl_set:Nn\l__ffbd_structure_style_tl{plain}}
+}
+\cs_new_protected:Npn \__ffbd_structure_port:nn #1#2{
+  \tl_set:Nx\l_tmpa_tl{\tl_trim_spaces:n{#1}}
+  \clist_if_in:NVF\l__ffbd_structure_members_clist\l_tmpa_tl
+    {\msg_error:nnVV{tikzffbd}{not-member}\l_tmpa_tl\l__ffbd_structure_id_tl}
+}
+\cs_new_protected:Npn \__ffbd_structure_member:n #1{
+  \tl_set:Nx\l_tmpa_tl{\tl_trim_spaces:n{#1}}
+  \exp_args:NV\__ffbd_require:n\l_tmpa_tl
+  \prop_get:NVNTF\l__ffbd_member_structure_prop\l_tmpa_tl\l_tmpb_tl
+    {\msg_error:nnVV{tikzffbd}{member-structure}\l_tmpa_tl\l_tmpb_tl}
+    {\prop_put:NVV\l__ffbd_member_structure_prop\l_tmpa_tl\l__ffbd_structure_id_tl}
+}
+\NewDocumentCommand \ffbdStructure {O{}mm}{
+  \tl_set:Nx\l__ffbd_structure_id_tl{\tl_trim_spaces:n{#2}}
+  \regex_match:nnF {\A[-A-Za-z0-9:]+\Z}{#2}
+    {\msg_error:nnn {tikzffbd}{bad-id}{#2}}
+  \prop_if_in:NVTF\l__ffbd_structure_type_prop\l__ffbd_structure_id_tl
+    {\msg_error:nnV{tikzffbd}{duplicate-structure}\l__ffbd_structure_id_tl}
+    {
+      \tl_set:Nn\l__ffbd_structure_type_tl{Function}
+      \tl_clear:N\l__ffbd_structure_info_tl
+      \tl_set:Nn\l__ffbd_structure_style_tl{shaded}
+      \clist_set:Nn\l__ffbd_structure_members_clist{#3}
+      \clist_clear:N\l__ffbd_structure_inputs_clist
+      \clist_clear:N\l__ffbd_structure_outputs_clist
+      \keys_set:nn{tikzffbd/structure}{#1}
+      \clist_if_empty:NT\l__ffbd_structure_members_clist
+        {\msg_error:nnV{tikzffbd}{empty-structure}\l__ffbd_structure_id_tl}
+      \clist_map_inline:Nn\l__ffbd_structure_members_clist
+        {\__ffbd_structure_member:n{##1}}
+      \clist_map_inline:Nn\l__ffbd_structure_inputs_clist
+        {\__ffbd_structure_port:nn{##1}{input}}
+      \clist_map_inline:Nn\l__ffbd_structure_outputs_clist
+        {\__ffbd_structure_port:nn{##1}{output}}
+      \seq_put_right:NV\l__ffbd_structures_seq\l__ffbd_structure_id_tl
+      \prop_put:NVV\l__ffbd_structure_type_prop
+        \l__ffbd_structure_id_tl\l__ffbd_structure_type_tl
+      \prop_put:NVV\l__ffbd_structure_info_prop
+        \l__ffbd_structure_id_tl\l__ffbd_structure_info_tl
+      \prop_put:NVV\l__ffbd_structure_style_prop
+        \l__ffbd_structure_id_tl\l__ffbd_structure_style_tl
+      \prop_put:NVx\l__ffbd_structure_members_prop\l__ffbd_structure_id_tl
+        {\clist_use:Nn\l__ffbd_structure_members_clist{,}}
+      \prop_put:NVx\l__ffbd_structure_inputs_prop\l__ffbd_structure_id_tl
+        {\clist_use:Nn\l__ffbd_structure_inputs_clist{,}}
+      \prop_put:NVx\l__ffbd_structure_outputs_prop\l__ffbd_structure_id_tl
+        {\clist_use:Nn\l__ffbd_structure_outputs_clist{,}}
+    }
+}
 
 % Relationships
 \tl_new:N \l__ffbd_edge_label_tl
@@ -339,6 +438,20 @@
       rounded~corners=1.5pt,line~width=.55pt,
       text~width=\dim_eval:n{\l__ffbd_width_dim-2mm},
       align=left,inner~sep=1.5mm,font=\sffamily\scriptsize}
+    ,ffbd/structure/plain/.style={
+      draw=\l__ffbd_function_draw_tl!70,text=\l__ffbd_ink_tl,
+      line~width=.65pt,rounded~corners=5pt}
+    ,ffbd/structure/dashed/.style={
+      ffbd/structure/plain,dashed}
+    ,ffbd/structure/shaded/.style={
+      ffbd/structure/plain,fill=\l__ffbd_function_fill_tl,
+      fill~opacity=.28}
+    ,ffbd/structure-type/.style={
+      font=\sffamily\bfseries\scriptsize,text=\l__ffbd_ink_tl,
+      inner~sep=0pt,anchor=west}
+    ,ffbd/structure-info/.style={
+      font=\sffamily\scriptsize,text=\l__ffbd_ink_tl,
+      inner~sep=0pt,anchor=center}
   }
   \bool_if:NTF \l__ffbd_fill_bool {
     \tikzset{
@@ -374,6 +487,7 @@
   \cs_set_eq:NN \branch \ffbdBranch
   \cs_set_eq:NN \join \ffbdJoin
   \cs_set_eq:NN \loopflow \ffbdLoopFlow
+  \cs_set_eq:NN \structure \ffbdStructure
   \cs_set_eq:NN \precondition \ffbdPrecondition
   \cs_set_eq:NN \timing \ffbdTiming
   \cs_set_eq:NN \note \ffbdNote

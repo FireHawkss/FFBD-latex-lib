@@ -1,0 +1,43 @@
+\documentclass[a4paper]{article}
+\usepackage[landscape,margin=16mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+
+\begin{document}
+\begin{ffbd}[
+  theme=forest,
+  wrap=false,
+  column-sep=45mm
+]
+  \start{start}{Request received}
+  \function{load}{Load candidate data}
+  \function{validate}{Validate candidate data}
+  \function{refine}{Refine accepted result}
+  \function{approve}{Approve result}
+  \finish{finish}{Request complete}
+
+  \flow{start}{load}
+  \flow{load}{validate}
+  \loopflow[condition={Invalid: try again},side=above]{validate}{load}
+  \flow[condition={Valid}]{validate}{refine}
+  \flow{refine}{approve}
+  \flow{approve}{finish}
+  \flow[condition={Emergency bypass}]{start}{finish}
+  \note{validate}{Each failed attempt is recorded}
+
+  \structure[
+    type={While loop},
+    info={while data is invalid},
+    style=shaded,
+    inputs={load},
+    outputs={validate}
+  ]{retry-cycle}{load,validate}
+  \structure[
+    type={Sub-function},
+    info={controlled refinement},
+    style=dashed,
+    inputs={refine},
+    outputs={approve}
+  ]{refinement}{refine,approve}
+\end{ffbd}
+\end{document}
