@@ -210,6 +210,85 @@ def main():
                   f'direction={direction},max-columns={columns},row-sep=12mm,column-sep=28mm'))
     check('parallel-custom-stub', document(parallel,
           'direction=right,max-columns=5,port-stub=9mm'))
+    # A one-in/one-out continuation within a branch keeps the lane of its
+    # predecessor instead of being centered merely because it occupies a rank
+    # on its own.
+    branch_chain = r'''
+\start{s}{Start}
+\function{b1}{Branch one}
+\function{b2}{Branch two}
+\function{bx}{Branch one continuation}
+\finish{t}{Finish}
+\branch[and]{s}{b1,b2}
+\flow{b1}{bx}
+\join[and]{bx,b2}{t}
+'''
+    branch_boxes, _ = check('branch-lane-continuity',
+                            document(branch_chain, 'wrap=false'))
+    branch_bounds = dict(branch_boxes)
+    center_y = lambda box: (box[1] + box[3]) / 2
+    assert abs(center_y(branch_bounds['b1']) - center_y(branch_bounds['bx'])) < .05, (
+        'branch-lane-continuity: continuation moved off its branch lane')
+
+    # Explicit row endings work independently of the automatic max-column
+    # threshold and begin the next snake row at the same physical stage.
+    forced_row = r'''
+\start{s}{Start}
+\function{a}{A}
+\function{b}{B}
+\function{c}{C}
+\finish{t}{Finish}
+\flow{s}{a}\flow{a}{b}
+\endrow
+\flow{b}{c}\flow{c}{t}
+'''
+    row_boxes, _ = check('explicit-end-row',
+                         document(forced_row, 'wrap=false,max-columns=8'))
+    row_bounds = dict(row_boxes)
+    center_x = lambda box: (box[0] + box[2]) / 2
+    assert abs(center_x(row_bounds['b']) - center_x(row_bounds['c'])) < .05, (
+        'explicit-end-row: next row did not start at the preceding stage')
+    assert abs(center_y(row_bounds['b']) - center_y(row_bounds['c'])) > .05, (
+        'explicit-end-row: command did not create a new row')
+    assert center_x(row_bounds['t']) < center_x(row_bounds['c']), (
+        'explicit-end-row: next row did not reverse direction')
+
+    # At a wrap, a node on the old row can feed a join on the new row.  Its
+    # output must still use the side opposite its branch input.
+    side_safe = r'''
+\start{s}{Start}
+\function{a}{Upper branch}
+\function{b}{Lower branch}
+\function{x}{Lower continuation}
+\finish{t}{Finish}
+\branch[or]{s}{a,b}
+\flow{b}{x}
+\join[or]{a,x}{t}
+'''
+    side_boxes, side_segments = check(
+        'separate-input-output-sides', document(side_safe, 'max-columns=3'))
+    side_bounds = dict(side_boxes)
+    incoming = [segment for ends, segment in side_segments if ends == ['@c1', 'a']]
+    outgoing = [segment for ends, segment in side_segments if ends == ['a', '@c2']]
+    assert incoming and outgoing, 'separate-input-output-sides: missing branch routes'
+    assert abs(incoming[-1][2] - side_bounds['a'][0]) < .05, (
+        'separate-input-output-sides: input did not enter on the left')
+    assert abs(outgoing[0][0] - side_bounds['a'][2]) < .05, (
+        'separate-input-output-sides: output reused the input side')
+    down_boxes, down_segments = check(
+        'separate-input-output-sides-down',
+        document(side_safe, 'direction=down,max-columns=3'))
+    down_bounds = dict(down_boxes)
+    down_incoming = [segment for ends, segment in down_segments
+                     if ends == ['@c1', 'a']]
+    down_outgoing = [segment for ends, segment in down_segments
+                     if ends == ['a', '@c2']]
+    assert down_incoming and down_outgoing, (
+        'separate-input-output-sides-down: missing branch routes')
+    assert abs(down_incoming[-1][3] - down_bounds['a'][3]) < .05, (
+        'separate-input-output-sides-down: input did not enter at the top')
+    assert abs(down_outgoing[0][1] - down_bounds['a'][1]) < .05, (
+        'separate-input-output-sides-down: output reused the input side')
     # Reused node IDs and different layout options must not leak between pictures.
     first = document(r'\start{s}{Start}\function{a}{Work}\finish{t}{End}'
                      r'\flow{s}{a}\flow{a}{t}', 'direction=down,annotations=right')

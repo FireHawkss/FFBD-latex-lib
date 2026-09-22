@@ -54,7 +54,7 @@ arbitrary manual control.
 
 ## Current implementation
 
-The prototype is version `0.3.0`; its public API lives in `tikzffbd.sty`
+The prototype is version `0.4.0`; its public API lives in `tikzffbd.sty`
 and the measured layout engine in `tikzffbd-layout.code.tex`.
 
 The public short commands are installed locally inside an `ffbd` environment,
@@ -84,6 +84,7 @@ Implemented public commands:
 - `\flow[condition={<text>}]{<source>}{<target>}`
 - `\branch[and|or]{<source>}{<target-list>}`
 - `\join[and|or]{<source-list>}{<target>}`
+- `\endrow`
 - `\loopflow[condition={<text>},side=above|below]{<source>}{<target>}`
 - `\structure[<options>]{<id>}{<member-list>}`
 - `\precondition{<id>}{<text>}`
@@ -136,8 +137,8 @@ The package uses a measured, deterministic layout portable to pdfLaTeX:
 2. The same TikZ styles measure and draw block, connector, annotation, and label
    rectangles. Stage widths and lane pitches grow to accommodate those bounds.
 3. Declaration order determines lane ordering. Wrapping snakes after
-   `max-columns`, counting connector stages. Occupied band extents determine
-   wrap offsets with a common gutter.
+   `max-columns`, counting connector stages. `\endrow` adds an explicit stage
+   boundary. Occupied band extents determine wrap offsets with a common gutter.
 4. Blocks are fixed before annotations and arrows are placed. Annotations can
    move to another side if their requested position is occupied.
 5. A rectangle registry drives orthogonal routing: central corridors, obstacle
@@ -210,3 +211,8 @@ two-row drawing. The original basic diagram retains its nominal 36mm pitch.
 The structure implementation and its acceptance example now pass the pdfLaTeX
 geometry suite in both horizontal and vertical directions. The complete
 `python3 tests/check_layout.py --lua` run should remain the final release check.
+
+Version 0.4 also preserves one-in/one-out branch lanes through intermediate
+functions, provides `\endrow` for explicit snake-row boundaries, and assigns
+normal-flow input/output ports from the direction of each row so a block never
+reuses its input side for an output. Focused geometry regressions cover all three.

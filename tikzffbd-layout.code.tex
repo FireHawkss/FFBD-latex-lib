@@ -16,6 +16,12 @@
 \prop_new:N \l__ffbd_stage_size_prop
 \prop_new:N \l__ffbd_stage_pos_prop
 \prop_new:N \l__ffbd_stage_turn_prop
+\prop_new:N \l__ffbd_rank_band_prop
+\prop_new:N \l__ffbd_rank_stage_prop
+\prop_new:N \l__ffbd_row_break_rank_prop
+\prop_new:N \l__ffbd_indegree_prop
+\prop_new:N \l__ffbd_outdegree_prop
+\prop_new:N \l__ffbd_node_lane_prop
 \seq_new:N \l__ffbd_obstacles_seq
 \seq_new:N \l__ffbd_structure_obstacles_seq
 \seq_new:N \l__ffbd_active_obstacles_seq
@@ -29,6 +35,7 @@
 \int_new:N \l__ffbd_maxrank_int
 \int_new:N \l__ffbd_stage_int
 \int_new:N \l__ffbd_band_int
+\int_new:N \l__ffbd_stage_direction_int
 \int_new:N \l__ffbd_loop_int
 \int_new:N \l__ffbd_port_int
 \fp_new:N \l__ffbd_lane_fp
@@ -125,13 +132,84 @@
     {\prop_put:Nnx \l__ffbd_rank_prop {#2}
       {\int_eval:n{\prop_item:Nn\l__ffbd_rank_prop{#1}+1}}}
 }
+\cs_new_protected:Npn \__ffbd_degree:nn #1#2{
+  \prop_get:NnNTF\l__ffbd_outdegree_prop{#1}\l_tmpa_tl
+    {}{\tl_set:Nn\l_tmpa_tl{0}}
+  \prop_put:Nnx\l__ffbd_outdegree_prop{#1}{\int_eval:n{\l_tmpa_tl+1}}
+  \prop_get:NnNTF\l__ffbd_indegree_prop{#2}\l_tmpa_tl
+    {}{\tl_set:Nn\l_tmpa_tl{0}}
+  \prop_put:Nnx\l__ffbd_indegree_prop{#2}{\int_eval:n{\l_tmpa_tl+1}}
+}
+\cs_new_protected:Npn \__ffbd_build_degrees:{
+  \prop_clear:N\l__ffbd_indegree_prop
+  \prop_clear:N\l__ffbd_outdegree_prop
+  \seq_map_inline:Nn\l__ffbd_nodes_seq{
+    \prop_put:Nnn\l__ffbd_indegree_prop{##1}{0}
+    \prop_put:Nnn\l__ffbd_outdegree_prop{##1}{0}}
+  \seq_map_inline:Nn\l__ffbd_edges_seq{\__ffbd_degree:nn ##1}
+}
+\cs_new_protected:Npn \__ffbd_continue_lane:nn #1#2{
+  \int_compare:nNnT{\prop_item:Nn\l__ffbd_outdegree_prop{#1}}={1}{
+    \int_compare:nNnT{\prop_item:Nn\l__ffbd_indegree_prop{#2}}={1}{
+      \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_rank_prop{#1}}
+      \tl_set:Nx\l_tmpb_tl{\prop_item:Nn\l__ffbd_rank_prop{#2}}
+      \int_compare:nNnT{\prop_item:NV\l__ffbd_rank_band_prop\l_tmpa_tl}
+        ={\prop_item:NV\l__ffbd_rank_band_prop\l_tmpb_tl}{
+        \prop_put:Nnx\l__ffbd_node_lane_prop{#2}
+          {\prop_item:Nn\l__ffbd_node_lane_prop{#1}}
+      }
+    }
+  }
+}
+% Map logical ranks onto a snake.  An explicit row break reverses direction at
+% the current physical stage, so the next rank begins directly below/beside it.
+\cs_new_protected:Npn \__ffbd_build_stage_map:{
+  \prop_clear:N\l__ffbd_rank_band_prop
+  \prop_clear:N\l__ffbd_rank_stage_prop
+  \prop_clear:N\l__ffbd_row_break_rank_prop
+  \seq_map_inline:Nn\l__ffbd_row_break_nodes_seq{
+    \prop_put:Nxx\l__ffbd_row_break_rank_prop
+      {\prop_item:Nn\l__ffbd_rank_prop{##1}}{1}}
+  \int_zero:N\l__ffbd_band_int
+  \int_zero:N\l__ffbd_stage_int
+  \int_set:Nn\l__ffbd_stage_direction_int{1}
+  \int_step_inline:nnnn{0}{1}{\l__ffbd_maxrank_int}{
+    \prop_put:Nnx\l__ffbd_rank_band_prop{##1}{\int_use:N\l__ffbd_band_int}
+    \prop_put:Nnx\l__ffbd_rank_stage_prop{##1}{\int_use:N\l__ffbd_stage_int}
+    \bool_set_false:N\l_tmpa_bool
+    \prop_if_in:NnT\l__ffbd_row_break_rank_prop{##1}
+      {\bool_set_true:N\l_tmpa_bool}
+    \bool_if:nT{\l__ffbd_wrap_bool||!\seq_if_empty_p:N\l__ffbd_row_break_nodes_seq}{
+      \int_compare:nNnT{\l__ffbd_stage_direction_int}>{0}{
+        \int_compare:nT{\l__ffbd_stage_int>=\l__ffbd_columns_int-1}
+          {\bool_set_true:N\l_tmpa_bool}}
+      \int_compare:nNnT{\l__ffbd_stage_direction_int}<{0}{
+        \int_compare:nT{\l__ffbd_stage_int<=0}
+          {\bool_set_true:N\l_tmpa_bool}}
+    }
+    \bool_if:NTF\l_tmpa_bool{
+      \int_incr:N\l__ffbd_band_int
+      \int_set:Nn\l__ffbd_stage_direction_int{-\l__ffbd_stage_direction_int}
+    }{
+      \int_add:Nn\l__ffbd_stage_int{\l__ffbd_stage_direction_int}
+    }
+  }
+}
 \cs_new_protected:Npn \__ffbd_layout:{
   \int_step_inline:nn {\seq_count:N\l__ffbd_nodes_seq}{
     \seq_map_inline:Nn \l__ffbd_edges_seq {\__ffbd_relax:nn ####1}}
+  \int_zero:N\l__ffbd_maxrank_int
+  \seq_map_inline:Nn\l__ffbd_nodes_seq{
+    \int_set:Nn\l__ffbd_maxrank_int
+      {\int_max:nn{\l__ffbd_maxrank_int}{\prop_item:Nn\l__ffbd_rank_prop{##1}}}}
+  \int_compare:nNnT {\l__ffbd_maxrank_int} > {\seq_count:N\l__ffbd_nodes_seq-1}
+    {\msg_error:nn{tikzffbd}{cycle}}
+  \__ffbd_build_stage_map:
+  \__ffbd_build_degrees:
   \prop_clear:N \l__ffbd_count_prop \prop_clear:N \l__ffbd_used_prop
   \prop_clear:N \l__ffbd_stage_size_prop \prop_clear:N \l__ffbd_stage_pos_prop
   \prop_clear:N \l__ffbd_stage_turn_prop
-  \int_zero:N \l__ffbd_lanes_int \int_zero:N \l__ffbd_maxrank_int
+  \int_zero:N \l__ffbd_lanes_int
   \str_if_eq:VnTF \l__ffbd_direction_tl {right}{
     \fp_set:Nn \l__ffbd_lane_fp {\dim_to_fp:n{\l__ffbd_ysep_dim}}
     \fp_set:Nn \l__ffbd_gap_fp {max(\dim_to_fp:n{\l__ffbd_xsep_dim-\l__ffbd_width_dim}-.75,\dim_to_fp:n{6mm})}
@@ -150,7 +228,6 @@
   }
   \seq_map_inline:Nn \l__ffbd_nodes_seq {
     \tl_set:Nx \l_tmpa_tl {\prop_item:Nn\l__ffbd_rank_prop{##1}}
-    \int_set:Nn \l__ffbd_maxrank_int {\int_max:nn{\l__ffbd_maxrank_int}{\l_tmpa_tl}}
     \prop_get:NVNTF \l__ffbd_count_prop \l_tmpa_tl \l_tmpb_tl
       {}{\tl_set:Nn\l_tmpb_tl{0}}
     \prop_put:NVx \l__ffbd_count_prop \l_tmpa_tl {\int_eval:n{\l_tmpb_tl+1}}
@@ -187,12 +264,8 @@
       \fp_set:Nn\l__ffbd_lane_fp{max(\l__ffbd_lane_fp,\l_tmpa_fp+\dim_to_fp:n{6mm})}
       \fp_set_eq:NN\l__ffbd_extent_fp\l__ffbd_h_fp
     }
-    \int_set:Nn \l__ffbd_stage_int {\l_tmpa_tl}
-    \bool_if:NT \l__ffbd_wrap_bool {
-      \int_set:Nn \l__ffbd_stage_int {\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-      \int_if_odd:nT {\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-        {\int_set:Nn\l__ffbd_stage_int{\l__ffbd_columns_int-1-\l__ffbd_stage_int}}
-    }
+    \int_set:Nn \l__ffbd_stage_int
+      {\prop_item:NV\l__ffbd_rank_stage_prop\l_tmpa_tl}
     \tl_set:Nx \l_tmpa_tl {\int_use:N\l__ffbd_stage_int}
     \prop_get:NVNTF \l__ffbd_stage_size_prop \l_tmpa_tl \l_tmpb_tl {}{\tl_set:Nn\l_tmpb_tl{0}}
     \prop_put:NVx \l__ffbd_stage_size_prop \l_tmpa_tl {\fp_eval:n{max(\l_tmpb_tl,\l__ffbd_extent_fp)}}
@@ -203,18 +276,12 @@
   \seq_map_inline:Nn \l__ffbd_nodes_seq {
     \tl_set:Nx \l_tmpa_tl {\prop_item:Nn\l__ffbd_rank_prop{##1}}
     \int_compare:nNnT {\prop_item:NV\l__ffbd_count_prop\l_tmpa_tl}>{1}{
-      \int_set:Nn \l__ffbd_stage_int {\l_tmpa_tl}
-      \bool_if:NT \l__ffbd_wrap_bool {
-        \int_set:Nn \l__ffbd_stage_int {\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-        \int_if_odd:nT {\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-          {\int_set:Nn\l__ffbd_stage_int{\l__ffbd_columns_int-1-\l__ffbd_stage_int}}
-      }
+      \int_set:Nn \l__ffbd_stage_int
+        {\prop_item:NV\l__ffbd_rank_stage_prop\l_tmpa_tl}
       \tl_set:Nx\l_tmpb_tl{\int_use:N\l__ffbd_stage_int}
       \prop_put:NVn\l__ffbd_stage_turn_prop\l_tmpb_tl{1}
     }
   }
-  \int_compare:nNnT {\l__ffbd_maxrank_int} > {\seq_count:N\l__ffbd_nodes_seq-1}
-    {\msg_error:nn{tikzffbd}{cycle}}
   \fp_zero:N \l__ffbd_cursor_fp
   \int_step_inline:nnnn {0}{1}{\l__ffbd_maxrank_int}{
     \prop_get:NnNT \l__ffbd_stage_size_prop {##1}\l_tmpa_tl {
@@ -228,18 +295,14 @@
       \fp_add:Nn\l__ffbd_cursor_fp{\l_tmpa_tl/2+\l_tmpa_fp}
     }
   }
+  \prop_clear:N\l__ffbd_node_lane_prop
   \seq_map_inline:Nn \l__ffbd_nodes_seq {
     \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_rank_prop{##1}}
     \prop_get:NVNTF\l__ffbd_used_prop\l_tmpa_tl\l_tmpb_tl{}{\tl_set:Nn\l_tmpb_tl{0}}
     \fp_set:Nn\l__ffbd_y_fp{((\prop_item:NV\l__ffbd_count_prop\l_tmpa_tl-1)/2-\l_tmpb_tl)*\l__ffbd_lane_fp}
-    \int_set:Nn\l__ffbd_stage_int{\l_tmpa_tl}
-    \int_zero:N\l__ffbd_band_int
-    \bool_if:NT\l__ffbd_wrap_bool{
-      \int_set:Nn\l__ffbd_band_int{\int_div_truncate:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-      \int_set:Nn\l__ffbd_stage_int{\int_mod:nn{\l_tmpa_tl}{\l__ffbd_columns_int}}
-      \int_if_odd:nT{\l__ffbd_band_int}
-        {\int_set:Nn\l__ffbd_stage_int{\l__ffbd_columns_int-1-\l__ffbd_stage_int}}
-    }
+    \prop_put:Nnx\l__ffbd_node_lane_prop{##1}{\fp_use:N\l__ffbd_y_fp}
+    \int_set:Nn\l__ffbd_stage_int
+      {\prop_item:NV\l__ffbd_rank_stage_prop\l_tmpa_tl}
     \fp_set:Nn\l__ffbd_x_fp{\prop_item:Ne\l__ffbd_stage_pos_prop{\int_use:N\l__ffbd_stage_int}}
     % Band offsets are applied after their occupied bounds are measured.
     \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
@@ -251,6 +314,16 @@
     }
     \prop_put:NVx\l__ffbd_used_prop\l_tmpa_tl{\int_eval:n{\l_tmpb_tl+1}}
   }
+  % A one-in/one-out continuation keeps its branch lane instead of being
+  % re-centered merely because it is the only node at the next rank.
+  \int_step_inline:nn{\seq_count:N\l__ffbd_nodes_seq}{
+    \seq_map_inline:Nn\l__ffbd_edges_seq{\__ffbd_continue_lane:nn ####1}}
+  \seq_map_inline:Nn\l__ffbd_nodes_seq{
+    \fp_set:Nn\l__ffbd_y_fp{\prop_item:Nn\l__ffbd_node_lane_prop{##1}}
+    \str_if_eq:VnTF\l__ffbd_direction_tl{right}
+      {\prop_put:Nnx\l__ffbd_y_prop{##1}{\fp_use:N\l__ffbd_y_fp}}
+      {\prop_put:Nnx\l__ffbd_x_prop{##1}{\fp_eval:n{-\l__ffbd_y_fp}}}
+  }
   \__ffbd_place_bands:
 }
 % Wrapped rows/columns have a common clear gutter, independent of how many
@@ -259,9 +332,9 @@
   \prop_clear:N\l__ffbd_band_top_prop \prop_clear:N\l__ffbd_band_bottom_prop
   \prop_clear:N\l__ffbd_band_offset_prop
   \seq_map_inline:Nn\l__ffbd_nodes_seq{
-    \int_zero:N\l__ffbd_band_int
-    \bool_if:NT\l__ffbd_wrap_bool{\int_set:Nn\l__ffbd_band_int
-      {\int_div_truncate:nn{\prop_item:Nn\l__ffbd_rank_prop{##1}}{\l__ffbd_columns_int}}}
+    \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_rank_prop{##1}}
+    \int_set:Nn\l__ffbd_band_int
+      {\prop_item:NV\l__ffbd_rank_band_prop\l_tmpa_tl}
     \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
       \fp_set:Nn\l__ffbd_y_fp{\prop_item:Nn\l__ffbd_y_prop{##1}}
       \fp_set:Nn\l__ffbd_h_fp{\prop_item:Nn\l__ffbd_h_prop{##1}/2}
@@ -304,9 +377,9 @@
     \prop_put:Nnx\l__ffbd_band_offset_prop{##1}{\fp_use:N\l__ffbd_cursor_fp}
   }
   \seq_map_inline:Nn\l__ffbd_nodes_seq{
-    \int_zero:N\l__ffbd_band_int
-    \bool_if:NT\l__ffbd_wrap_bool{\int_set:Nn\l__ffbd_band_int
-      {\int_div_truncate:nn{\prop_item:Nn\l__ffbd_rank_prop{##1}}{\l__ffbd_columns_int}}}
+    \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_rank_prop{##1}}
+    \int_set:Nn\l__ffbd_band_int
+      {\prop_item:NV\l__ffbd_rank_band_prop\l_tmpa_tl}
     \fp_set:Nn\l__ffbd_cursor_fp{\prop_item:Ne\l__ffbd_band_offset_prop{\int_use:N\l__ffbd_band_int}}
     \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
       \prop_put:Nnx\l__ffbd_y_prop{##1}{\fp_eval:n{\prop_item:Nn\l__ffbd_y_prop{##1}-\l__ffbd_cursor_fp}}
@@ -631,6 +704,14 @@
 \cs_generate_variant:Nn \__ffbd_make_port:nnnn {Vnnn}
 % Start/end ports follow the flow direction; feedback uses a side port so
 % its escape segment cannot run through another block in the same lane.
+\cs_new_protected:Npn \__ffbd_forward_sign:nN #1#2{
+  \fp_set:Nn#2{1}
+  \prop_if_in:NnT\l__ffbd_rank_prop{#1}{
+    \tl_set:Nx\l_tmpa_tl{\prop_item:Nn\l__ffbd_rank_prop{#1}}
+    \int_if_odd:nT{\prop_item:NV\l__ffbd_rank_band_prop\l_tmpa_tl}
+      {\fp_set:Nn#2{-1}}
+  }
+}
 \cs_new_protected:Npn \__ffbd_ports:nn #1#2{
   \bool_set_false:N\l__ffbd_source_virtual_bool
   \bool_set_false:N\l__ffbd_target_virtual_bool
@@ -642,35 +723,23 @@
   \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_y_prop{#2}}
   \str_if_eq:VnTF\l__ffbd_direction_tl{right}{
     \fp_set:Nn\l_tmpa_fp{sign(\l__ffbd_bx_fp-\l__ffbd_ax_fp)}
-    \tl_if_blank:VF\l__ffbd_saved_side_tl{\fp_set:Nn\l_tmpa_fp{1}}
+    \tl_if_blank:VTF\l__ffbd_saved_side_tl{
+      \fp_set:Nn\l_tmpb_fp{-\l_tmpa_fp}
+      \bool_if:NF\l__ffbd_source_virtual_bool
+        {\__ffbd_forward_sign:nN{#1}\l_tmpa_fp}
+      \bool_if:NF\l__ffbd_target_virtual_bool{
+        \__ffbd_forward_sign:nN{#2}\l_tmpb_fp
+        \fp_set:Nn\l_tmpb_fp{-\l_tmpb_fp}}
+    }{
+      \fp_set:Nn\l_tmpa_fp{1}\fp_set:Nn\l_tmpb_fp{1}
+    }
     \fp_compare:nNnTF{\l_tmpa_fp}={0}{
       \__ffbd_vertical_ports:nn{#1}{#2}
-      % At a horizontal wrap, use the outside edge of both nodes.  This is
-      % especially important for a split at the row boundary: the incoming
-      % branch arrows then use the targets' outside edges, leaving their
-      % inside edges free for the continuing flow along the wrapped row.
-      \bool_if:NT\l__ffbd_wrap_bool{
-        \fp_set:Nn\l_tmpa_fp{-1}
-        \int_if_odd:nT{\int_div_truncate:nn{\prop_item:Nn\l__ffbd_rank_prop{#2}}{\l__ffbd_columns_int}}
-          {\fp_set:Nn\l_tmpa_fp{1}}
-        \fp_set:Nn\l__ffbd_ay_fp{\prop_item:Nn\l__ffbd_y_prop{#1}}
-        \fp_set:Nn\l__ffbd_ax_fp{\prop_item:Nn\l__ffbd_x_prop{#1}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#1}/2}
-        \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
-        \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
-        \fp_set:Nn\l__ffbd_by_fp{\prop_item:Nn\l__ffbd_y_prop{#2}}
-        \fp_set:Nn\l__ffbd_bx_fp{\prop_item:Nn\l__ffbd_x_prop{#2}+\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}
-        \fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
-        \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp
-      }
     }{
       \fp_add:Nn\l__ffbd_ax_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#1}/2}
-      \tl_if_blank:VTF\l__ffbd_saved_side_tl
-        {\fp_sub:Nn\l__ffbd_bx_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}}
-        {\fp_add:Nn\l__ffbd_bx_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}}
+      \fp_add:Nn\l__ffbd_bx_fp{\l_tmpb_fp*\prop_item:Nn\l__ffbd_w_prop{#2}/2}
       \fp_set:Nn\l__ffbd_sx_fp{\l__ffbd_ax_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
-      \tl_if_blank:VTF\l__ffbd_saved_side_tl
-        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp-\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
-        {\fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
+      \fp_set:Nn\l__ffbd_tx_fp{\l__ffbd_bx_fp+\l_tmpb_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
       \fp_set_eq:NN\l__ffbd_sy_fp\l__ffbd_ay_fp
       \fp_set_eq:NN\l__ffbd_ty_fp\l__ffbd_by_fp
     }
@@ -732,15 +801,20 @@
 \cs_new_protected:Npn \__ffbd_vertical_ports:nn #1#2{
   \fp_set:Nn\l_tmpa_fp{sign(\l__ffbd_by_fp-\l__ffbd_ay_fp)}
   \fp_compare:nNnT{\l_tmpa_fp}={0}{\fp_set:Nn\l_tmpa_fp{-1}}
-  \tl_if_blank:VF\l__ffbd_saved_side_tl{\fp_set:Nn\l_tmpa_fp{-1}}
+  \tl_if_blank:VTF\l__ffbd_saved_side_tl{
+    \fp_set:Nn\l_tmpb_fp{-\l_tmpa_fp}
+    \bool_if:NF\l__ffbd_source_virtual_bool{
+      \__ffbd_forward_sign:nN{#1}\l_tmpa_fp
+      \fp_set:Nn\l_tmpa_fp{-\l_tmpa_fp}}
+    \bool_if:NF\l__ffbd_target_virtual_bool
+      {\__ffbd_forward_sign:nN{#2}\l_tmpb_fp}
+  }{
+    \fp_set:Nn\l_tmpa_fp{-1}\fp_set:Nn\l_tmpb_fp{-1}
+  }
   \fp_add:Nn\l__ffbd_ay_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_h_prop{#1}/2}
-  \tl_if_blank:VTF\l__ffbd_saved_side_tl
-    {\fp_sub:Nn\l__ffbd_by_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_h_prop{#2}/2}}
-    {\fp_add:Nn\l__ffbd_by_fp{\l_tmpa_fp*\prop_item:Nn\l__ffbd_h_prop{#2}/2}}
+  \fp_add:Nn\l__ffbd_by_fp{\l_tmpb_fp*\prop_item:Nn\l__ffbd_h_prop{#2}/2}
   \fp_set:Nn\l__ffbd_sy_fp{\l__ffbd_ay_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
-  \tl_if_blank:VTF\l__ffbd_saved_side_tl
-    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp-\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
-    {\fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp+\l_tmpa_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}}
+  \fp_set:Nn\l__ffbd_ty_fp{\l__ffbd_by_fp+\l_tmpb_fp*\dim_to_fp:n{\l__ffbd_port_stub_dim}}
   \fp_set_eq:NN\l__ffbd_sx_fp\l__ffbd_ax_fp
   \fp_set_eq:NN\l__ffbd_tx_fp\l__ffbd_bx_fp
 }

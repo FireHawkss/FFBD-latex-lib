@@ -1,6 +1,6 @@
 %% tikzffbd.sty -- Functional Flow Block Diagrams without low-level TikZ
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage{tikzffbd}{2026-09-22}{0.3.0}
+\ProvidesExplPackage{tikzffbd}{2026-09-22}{0.4.0}
   {Automatic, polished Functional Flow Block Diagrams}
 
 \ExplSyntaxOff
@@ -29,6 +29,8 @@
   {Port~function~'#1'~is~not~a~member~of~structure~'#2'.}
 \msg_new:nnn {tikzffbd}{bad-structure-port}
   {Flow~'#1'~to~'#2'~crosses~structure~'#3'~through~an~undeclared~port.}
+\msg_new:nnn {tikzffbd}{row-break}
+  {\string\endrow~must~follow~a~forward~flow,~branch,~or~join.}
 
 % Palettes
 \definecolor{ffbdOceanFunction}{HTML}{DCEAF4}
@@ -164,6 +166,7 @@
 \seq_new:N \l__ffbd_edges_seq
 \seq_new:N \l__ffbd_flows_seq
 \seq_new:N \l__ffbd_loops_seq
+\seq_new:N \l__ffbd_row_break_nodes_seq
 \prop_new:N \l__ffbd_label_prop
 \prop_new:N \l__ffbd_number_prop
 \prop_new:N \l__ffbd_type_prop
@@ -184,12 +187,14 @@
 \int_new:N \l__ffbd_number_int
 \int_new:N \l__ffbd_connector_int
 \int_new:N \l__ffbd_lanes_int
+\tl_new:N \l__ffbd_last_forward_tl
 \box_new:N \l__ffbd_box
 \cs_new_protected:Npn \__ffbd_clear:{
   \seq_clear:N \l__ffbd_nodes_seq
   \seq_clear:N \l__ffbd_edges_seq
   \seq_clear:N \l__ffbd_flows_seq
   \seq_clear:N \l__ffbd_loops_seq
+  \seq_clear:N \l__ffbd_row_break_nodes_seq
   \prop_clear:N \l__ffbd_label_prop
   \prop_clear:N \l__ffbd_number_prop
   \prop_clear:N \l__ffbd_type_prop
@@ -205,6 +210,7 @@
   \prop_clear:N \l__ffbd_member_structure_prop
   \int_zero:N \l__ffbd_number_int
   \int_zero:N \l__ffbd_connector_int
+  \tl_clear:N \l__ffbd_last_forward_tl
 }
 
 % Nodes
@@ -333,6 +339,7 @@
   \__ffbd_edge:nn {#2}{#3}
   \seq_put_right:Nx \l__ffbd_flows_seq
     {{#2}{#3}{\exp_not:V \l__ffbd_edge_label_tl}}
+  \tl_set:Nn \l__ffbd_last_forward_tl {#3}
 }
 % Logical connectors participate in ranking and measurement just like blocks.
 \tl_new:N \l__ffbd_source_tl
@@ -352,6 +359,7 @@
   \exp_args:NVV \__ffbd_edge:nn \l__ffbd_source_tl \l_tmpa_tl
   \seq_put_right:Nx \l__ffbd_flows_seq
     {{\l__ffbd_source_tl}{\l_tmpa_tl}{\exp_not:n{#2}}}
+  \tl_set:Nx \l__ffbd_last_forward_tl {\l_tmpa_tl}
 }
 \NewDocumentCommand \ffbdBranch {O{and}mm}{
   \__ffbd_connector:n {#1}
@@ -367,6 +375,12 @@
   }
   \exp_args:NV \__ffbd_edge:nn \l__ffbd_source_tl {#3}
   \seq_put_right:Nx \l__ffbd_flows_seq {{\l__ffbd_source_tl}{#3}{}}
+  \tl_set:Nn \l__ffbd_last_forward_tl {#3}
+}
+\NewDocumentCommand \ffbdEndRow {}{
+  \tl_if_blank:VTF \l__ffbd_last_forward_tl
+    {\msg_error:nn {tikzffbd}{row-break}}
+    {\seq_put_right:NV \l__ffbd_row_break_nodes_seq \l__ffbd_last_forward_tl}
 }
 \tl_new:N \l__ffbd_loop_label_tl
 \tl_new:N \l__ffbd_loop_side_tl
@@ -486,6 +500,7 @@
   \cs_set_eq:NN \flow \ffbdFlow
   \cs_set_eq:NN \branch \ffbdBranch
   \cs_set_eq:NN \join \ffbdJoin
+  \cs_set_eq:NN \endrow \ffbdEndRow
   \cs_set_eq:NN \loopflow \ffbdLoopFlow
   \cs_set_eq:NN \structure \ffbdStructure
   \cs_set_eq:NN \precondition \ffbdPrecondition

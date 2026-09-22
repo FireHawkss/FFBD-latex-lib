@@ -39,10 +39,16 @@ display them. Functions are numbered automatically; override a number with
 \join[or]{yes,no}{continue}
 
 \loopflow[condition={Try again},side=above]{later}{earlier}
+
+\flow{first}{last-on-this-row}
+\endrow
+\flow{last-on-this-row}{first-on-next-row}
 ```
 
 Branches and joins create labeled logical connectors automatically. Branch
-destinations can carry edge labels using `id={Label}`.
+destinations can carry edge labels using `id={Label}`. A one-in/one-out chain
+inside a branch keeps its lane until it reaches a join, so intermediate blocks
+remain aligned with the branch block that precedes them.
 
 Group existing functions into a loop, sub-function, or custom structure with:
 
@@ -111,7 +117,11 @@ leaves or enters a block before its first or final bend.
 
 Declaration order resolves lane ordering. With wrapping enabled, stages snake
 after `max-columns`; **logical connectors count as stages**. Wrapped bands have
-measured extents and a `10mm` gutter. Use `wrap=false` for one continuous row.
+measured extents and a `10mm` gutter. Place `\endrow` after a flow, branch, or
+join to end the row at that relationship's destination stage; the next stage
+starts directly across the gutter and reverses direction. An explicit row end
+is honored even with `wrap=false`. Without `\endrow`, use `wrap=false` for one
+continuous row.
 The complex example uses landscape paper with `max-columns=8` to retain readable
 text. A final size check scales an over-wide diagram to `\linewidth` unless
 `scale-to-fit=false` is selected. Page orientation alone cannot repair collisions.
@@ -121,8 +131,9 @@ blocks and annotations, including transparent ones. Feedback uses an outer
 corridor on the requested side. Annotations prefer the requested side and can
 move to another clear position; condition labels are placed beside their routes
 and checked against **all** arrows and other objects. Blocks stay fixed during
-routing. This prevents drawing order or white label backgrounds from concealing
-collisions.
+routing. Normal forward flows use opposite input and output sides on each block,
+including branches that cross a wrapped-row boundary. This prevents drawing
+order or white label backgrounds from concealing collisions.
 
 Create a reusable organization theme with:
 
@@ -152,7 +163,7 @@ Create a reusable organization theme with:
 
 ## Prototype status
 
-Version 0.3 uses a deterministic measured layout and a bounded orthogonal
+Version 0.4 uses a deterministic measured layout and a bounded orthogonal
 router, remaining portable to pdfLaTeX without shell escape or external programs.
 Declare acyclic forward relationships and represent feedback using `\loopflow`;
 forward cycles produce an error. The router searches central and obstacle-edge
@@ -182,5 +193,6 @@ python3 tests/check_layout.py --lua
 The checks compile real diagrams and assert that measured objects do not overlap
 and that every arrow segment clears every object. Fixtures cover long text,
 skipped stages, annotations on all four sides, both directions, wrap boundaries,
+explicit row endings, branch-lane continuity, distinct input/output sides,
 transparent blocks, feedback, and the original examples. `layout-debug=true`
 emits geometry to the TeX log for diagnosis; it does not change the picture.
