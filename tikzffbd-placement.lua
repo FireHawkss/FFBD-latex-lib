@@ -215,11 +215,13 @@ function M.place(plan,spec,metrics,constraints)
   local geometry={environment_id=plan.environment_id,node_rects_by_id={},
     group_rects_by_id={},row_axes={},reserved_channels={},provisional_ports={},
     group_rect_page_by_id={},page_extents_by_index={},group_boundary_ports={},
+    continuation_markers_by_page={},
     spacing_stats={route_gap_sp=route_gap,lane_gap_sp=lane_gap,row_gap_sp=row_gap,
       group_padding_sp=group_pad}}
   local node_page,node_row={},{}
   local gaps,crossings_before,crossings_after={},0,0
   for page_index,page in ipairs(plan.pages or {}) do
+    geometry.continuation_markers_by_page[page_index]=page.continuation_markers or {}
     local cross_cursor=page_margin
     for row_index,row in ipairs(page.rows or {}) do
       local ids=row.ordered_node_ids or {}
