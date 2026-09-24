@@ -6,8 +6,8 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 
 | Part | State | Depends on | Handoff |
 | --- | --- | --- | --- |
-| 01 Contracts and fixtures | ready | — | pending |
-| 02 Semantic model | waiting | 01 | pending |
+| 01 Contracts and fixtures | complete | — | [01.md](handoffs/01.md) |
+| 02 Semantic model | ready | 01 | pending |
 | 03 TeX bridge and measurement | waiting | 01, 02 | pending |
 | 04 Constraints and diagnostics | waiting | 01, 02 | pending |
 | 05 Structural analysis | waiting | 02, 04 | pending |
@@ -18,4 +18,5 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | 10 TikZ renderer | waiting | 01, 03; final integration 09 | pending |
 | 11 Integration and release gates | waiting | 01–10 | pending |
 
-The current code is the legacy prototype. No implementation task has started.
+The production code is still the legacy prototype. Part 01 has established
+development-time contracts and fixtures; part 02 is the next implementation.

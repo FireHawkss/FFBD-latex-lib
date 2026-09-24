@@ -1,0 +1,514 @@
+{
+  "manifest_version": 1,
+  "fixtures": [
+    {
+      "id": "basic-chain",
+      "source": "examples/basic.tex",
+      "status": "source",
+      "category": "simple",
+      "direction": "right",
+      "blocks": 5,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 4,
+        "feedback_flows": 0,
+        "split_logics": [],
+        "join_logics": [],
+        "structures": 0,
+        "annotations": 2
+      },
+      "visual_prompt": "Can the four forward steps and two notes be read in order with regular spacing?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "complex-branches",
+      "source": "examples/complex.tex",
+      "status": "source",
+      "category": "wrapped",
+      "direction": "right",
+      "blocks": 15,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 19,
+        "feedback_flows": 1,
+        "split_logics": [
+          "or",
+          "and",
+          "or"
+        ],
+        "join_logics": [
+          "or",
+          "and",
+          "or"
+        ],
+        "structures": 0,
+        "annotations": 3
+      },
+      "visual_prompt": "Are the three branch groups, feedback loop, conditions, and alternating rows understandable?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "structures-feedback",
+      "source": "examples/structures.tex",
+      "status": "source",
+      "category": "structured",
+      "direction": "right",
+      "blocks": 6,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 6,
+        "feedback_flows": 1,
+        "split_logics": [],
+        "join_logics": [],
+        "structures": 2,
+        "annotations": 1
+      },
+      "visual_prompt": "Do both group boundaries and declared input and output ports stay clear of the bypass and loop?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "custom-down",
+      "source": "examples/customization.tex",
+      "status": "source",
+      "category": "simple",
+      "direction": "down",
+      "blocks": 4,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 3,
+        "feedback_flows": 0,
+        "split_logics": [],
+        "join_logics": [],
+        "structures": 0,
+        "annotations": 1
+      },
+      "visual_prompt": "Is downward flow clear with the note on the right and transparent blocks?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "drone-real-world",
+      "source": "examples/1st-real-world-use.tex",
+      "status": "source",
+      "category": "wrapped",
+      "direction": "right",
+      "blocks": 18,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 19,
+        "feedback_flows": 1,
+        "split_logics": [
+          "or",
+          "or",
+          "or"
+        ],
+        "join_logics": [
+          "or",
+          "or"
+        ],
+        "structures": 0,
+        "annotations": 0
+      },
+      "visual_prompt": "Can a reader follow the assigned, survivor, and completion decisions across wraps and back through the loop?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "chain-8",
+      "source": null,
+      "status": "planned",
+      "category": "simple",
+      "direction": "right",
+      "blocks": 8,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 7,
+        "feedback_flows": 0,
+        "split_logics": [],
+        "join_logics": [],
+        "structures": 0,
+        "annotations": 0
+      },
+      "visual_prompt": "Is a straight eight-block chain readable without irregular local gaps?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "branches-15-unequal",
+      "source": null,
+      "status": "planned",
+      "category": "dense",
+      "direction": "right",
+      "blocks": 15,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": null,
+        "feedback_flows": 0,
+        "split_logics": [
+          "and"
+        ],
+        "join_logics": [
+          "and"
+        ],
+        "structures": 0,
+        "annotations": 0
+      },
+      "visual_prompt": "Do unequal arm lengths remain visibly grouped without wasted space?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "branches-30-unequal",
+      "source": null,
+      "status": "planned",
+      "category": "dense",
+      "direction": "down",
+      "blocks": 30,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": null,
+        "feedback_flows": 0,
+        "split_logics": [
+          "or",
+          "and"
+        ],
+        "join_logics": [
+          "or",
+          "and"
+        ],
+        "structures": 0,
+        "annotations": 0
+      },
+      "visual_prompt": "Do the long and short arms retain clear grouping across vertical bands?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "joins-feedback-42",
+      "source": null,
+      "status": "planned",
+      "category": "dense",
+      "direction": "right",
+      "blocks": 42,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": null,
+        "feedback_flows": 3,
+        "split_logics": [
+          "and",
+          "or",
+          "or"
+        ],
+        "join_logics": [
+          "and",
+          "or",
+          "or"
+        ],
+        "structures": 0,
+        "annotations": 0
+      },
+      "visual_prompt": "Are several joins and feedback loops distinguishable without confusing crossings?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "dense-text-conditions",
+      "source": null,
+      "status": "planned",
+      "category": "annotated",
+      "direction": "right",
+      "blocks": 12,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": null,
+        "feedback_flows": 1,
+        "split_logics": [
+          "or"
+        ],
+        "join_logics": [
+          "or"
+        ],
+        "structures": 0,
+        "annotations": 5
+      },
+      "visual_prompt": "Can every long condition and note be read near its owner without overlap or distant displacement?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "group-across-wrap",
+      "source": null,
+      "status": "planned",
+      "category": "structured",
+      "direction": "right",
+      "blocks": 14,
+      "semantic": {
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": null,
+        "feedback_flows": 0,
+        "split_logics": [],
+        "join_logics": [],
+        "structures": 1,
+        "annotations": 0
+      },
+      "visual_prompt": "Does a structure spanning two serpentine rows retain membership and clear boundary ports?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "columns-hard-conflict",
+      "source": null,
+      "status": "planned",
+      "category": "invalid-constraint",
+      "direction": "right",
+      "blocks": 8,
+      "semantic": {
+        "expected_diagnostic": "hard-constraint-conflict",
+        "competing_constraints": [
+          "max-columns",
+          "endrow"
+        ]
+      },
+      "visual_prompt": "Check that the diagnostic names both constraints and the affected region.",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "columns-soft",
+      "source": null,
+      "status": "planned",
+      "category": "wrapped",
+      "direction": "right",
+      "blocks": 8,
+      "semantic": {
+        "max_columns": 5,
+        "strength": "strong",
+        "expected_diagnostic": null
+      },
+      "visual_prompt": "Does exceeding the preferred column count improve readability for a clear reason?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "rowbreak-hard-soft",
+      "source": null,
+      "status": "planned",
+      "category": "wrapped",
+      "direction": "right",
+      "blocks": 12,
+      "semantic": {
+        "hard_endrows": 1,
+        "soft_endrows": 1
+      },
+      "visual_prompt": "Is the hard break exact and any moved soft break understandable?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "annotations-eight",
+      "source": null,
+      "status": "planned",
+      "category": "annotated",
+      "direction": "right",
+      "blocks": 8,
+      "semantic": {
+        "annotation_positions": [
+          "top-left",
+          "top-center",
+          "top-right",
+          "left",
+          "right",
+          "bottom-left",
+          "bottom-center",
+          "bottom-right"
+        ]
+      },
+      "visual_prompt": "Are all eight explicit positions honored with readable notes and nearby routes?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "scale-explicit",
+      "source": null,
+      "status": "planned",
+      "category": "simple",
+      "direction": "right",
+      "blocks": 8,
+      "semantic": {
+        "scales": [
+          0.9,
+          1.0,
+          1.2
+        ]
+      },
+      "visual_prompt": "Do text, strokes, boxes, notes, and spacing scale uniformly with no page fitting?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "large-64-single",
+      "source": null,
+      "status": "planned",
+      "category": "dense",
+      "direction": "right",
+      "blocks": 64,
+      "semantic": {
+        "multipage": false,
+        "expected_diagnostic": null
+      },
+      "visual_prompt": "Is the large single-page result honest about available space and free of severe compression?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "large-64-multipage",
+      "source": null,
+      "status": "planned",
+      "category": "multipage",
+      "direction": "right",
+      "blocks": 64,
+      "semantic": {
+        "multipage": true,
+        "minimum_pages": 2
+      },
+      "visual_prompt": "Can every continuation be followed across pages and does each page restart in the primary direction?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "irregular-gap-adversary",
+      "source": null,
+      "status": "planned",
+      "category": "dense",
+      "direction": "right",
+      "blocks": 24,
+      "semantic": {
+        "expected_quality_focus": "spacing-variance"
+      },
+      "visual_prompt": "Do nearby gaps keep a steady rhythm when one route requires extra clearance?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    },
+    {
+      "id": "displaced-label-adversary",
+      "source": null,
+      "status": "planned",
+      "category": "annotated",
+      "direction": "down",
+      "blocks": 16,
+      "semantic": {
+        "expected_quality_focus": "label-displacement"
+      },
+      "visual_prompt": "Can each condition be matched to its edge without scanning far away?",
+      "geometry_check_profile": "standard",
+      "visual_review": {
+        "reference": null,
+        "rating": null,
+        "notes": null
+      }
+    }
+  ],
+  "geometry_check_profiles": {
+    "standard": [
+      "stable-repeat",
+      "hard-constraints",
+      "node-clearance",
+      "flow-block-clearance",
+      "structure-ports",
+      "orthogonal-routes",
+      "text-clearance",
+      "page-bounds-if-multipage",
+      "explicit-uniform-scale"
+    ]
+  }
+}

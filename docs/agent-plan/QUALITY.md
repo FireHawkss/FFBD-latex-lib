@@ -44,6 +44,17 @@ labels, notes, and page continuations are understandable without manual edits.
 Track the under-10 / 10-30 / 30-50 readiness proportions as measured results;
 do not assert them from algorithm design alone.
 
+Part 01's inventory is `tests/fixtures/manifest.json`. Each entry has a stable
+fixture ID, source path or `null` while a successor `.tex` case is pending,
+semantic expectations, one visual-review prompt, a geometry check profile,
+and `visual_review` fields for a rendered reference, rating, and notes. A
+`null` visual result means **not reviewed**; the legacy PDF is not an expected
+geometry reference. `standard` names the invariant checks listed above.
+Later implementation parts add the planned `.tex` sources and populate the
+reference/rating fields with measured results. Readiness rates and quality
+thresholds remain unmeasured until those runs; part 09 calibrates score
+normalization and thresholds from visual evidence.
+
 ## Performance and environment
 
 Benchmark cold and repeat LuaLaTeX compilation on representative 10, 30, 50,

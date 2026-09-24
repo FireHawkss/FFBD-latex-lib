@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "environment_id": "mock-simple",
+  "objects": {
+    "Scene": {
+      "environment_id": "mock-simple",
+      "scale": 1,
+      "quality": {"vector": [0, 0, 0, 0, 0, 0, 0], "search_budget": 20, "candidates_evaluated": 1, "budget_exhausted": false},
+      "diagnostics": [],
+      "pages": [{
+        "node_rects": {
+          "s": {"x_sp": 0, "y_sp": 0, "width_sp": 1000, "height_sp": 600},
+          "a": {"x_sp": 2000, "y_sp": 0, "width_sp": 1000, "height_sp": 600},
+          "t": {"x_sp": 4000, "y_sp": 0, "width_sp": 1000, "height_sp": 600}
+        },
+        "structure_rects": {},
+        "annotations": [{"id": "note-a", "owner_id": "a", "position": "bottom-center", "rect": {"x_sp": 1800, "y_sp": -1200, "width_sp": 1400, "height_sp": 500}, "type_ref": "@text/4", "body_ref": "@text/5"}],
+        "flow_paths": {
+          "@flow/1": {"source_port_id": "@port/s/out/1", "target_port_id": "@port/a/in/1", "points": [{"x_sp": 1000, "y_sp": 300}, {"x_sp": 2000, "y_sp": 300}]},
+          "@flow/2": {"source_port_id": "@port/a/out/1", "target_port_id": "@port/t/in/1", "points": [{"x_sp": 3000, "y_sp": 300}, {"x_sp": 4000, "y_sp": 300}]}
+        },
+        "edge_labels": [],
+        "continuation_markers": [],
+        "bounding_rect": {"x_sp": 0, "y_sp": -1200, "width_sp": 5000, "height_sp": 1800}
+      }]
+    }
+  }
+}

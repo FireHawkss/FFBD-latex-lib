@@ -1,0 +1,13 @@
+{
+  "contract_version": 1,
+  "environment_id": "mock-invalid",
+  "objects": {
+    "Scene": {
+      "environment_id": "mock-invalid",
+      "scale": 0,
+      "quality": {"vector": [1, 0, 0, 0, 0, 0, 0], "search_budget": 10, "candidates_evaluated": 1, "budget_exhausted": false},
+      "diagnostics": [],
+      "pages": [{"node_rects": {"a": {"x_sp": 0, "y_sp": 0, "width_sp": 1000.5, "height_sp": 600}}, "structure_rects": {}, "annotations": [], "flow_paths": {"@flow/1": {"source_port_id": "@port/a/out/1", "target_port_id": "@port/b/in/1", "points": [{"x_sp": 0, "y_sp": 0}, {"x_sp": 10, "y_sp": 10}]}}, "edge_labels": [], "continuation_markers": [], "bounding_rect": {"x_sp": 0, "y_sp": 0, "width_sp": 2000, "height_sp": 600}}]
+    }
+  }
+}
