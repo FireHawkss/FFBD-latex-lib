@@ -144,6 +144,18 @@ function Builder:add_annotation(arg)
     source={command="annotation", declaration_index=index}})
   return arg.id
 end
+function Builder:add_constraint(arg)
+  local index = next_index(self)
+  if type(arg) ~= "table" then
+    err(self, "invalid-declaration", {}, "constraint requires a record")
+    return
+  end
+  local id = arg.id or "@constraint/" .. index
+  record(self, "constraints", {id=id, kind=arg.kind, target_ids=arg.target_ids or {},
+    value=arg.value, strength=arg.strength or "hard",
+    source=arg.source or {command="constraint", declaration_index=index}})
+  return id
+end
 
 local function unique_list(self, values, owner, name, known)
   if type(values) ~= "table" or #values == 0 then

@@ -1,5 +1,6 @@
 -- TeX input and measurement boundary. Raw TeX tokens remain in TeX.
 local model = require("tikzffbd-model")
+local constraints = require("tikzffbd-constraints")
 local M = {last = nil}
 local current
 
@@ -115,11 +116,15 @@ function M.finish(page_width, page_height, content_width, content_height)
     page_height_sp=dimension(page_height),content_width_sp=dimension(content_width),
     content_height_sp=dimension(content_height),direction=c.builder.spec.options.direction,
     scale=c.builder.spec.options.scale}
+  local normalized, constraint_errors
+  if spec then normalized, constraint_errors = constraints.normalize(spec, frame) end
   M.last = {Spec=spec, Metrics=c.metrics,
-    Frame=frame, diagnostics=errors}
+    Frame=frame, Constraints=normalized, diagnostics=constraint_errors or errors}
   current = nil
   if not spec then
     for _, e in ipairs(errors) do tex.error("tikzffbd: " .. e.message) end
+  elseif not normalized then
+    for _, e in ipairs(constraint_errors) do tex.error("tikzffbd: " .. e.message) end
   end
   return M.last
 end

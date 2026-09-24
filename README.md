@@ -9,9 +9,9 @@ layout while the successor solver is being built.
 
 Place `tikzffbd.sty`, `tikzffbd-layout.code.tex`,
 `tikzffbd-bridge.code.tex`, `tikzffbd-bridge.lua`, and
-`tikzffbd-model.lua` beside your document. Compile with LuaLaTeX, locally or
-with Overleaf's compiler set to LuaLaTeX. No shell escape or preprocessing is
-needed. Load the package with:
+`tikzffbd-model.lua`, and `tikzffbd-constraints.lua` beside your document.
+Compile with LuaLaTeX, locally or with Overleaf's compiler set to LuaLaTeX.
+No shell escape or preprocessing is needed. Load the package with:
 
 ```latex
 \usepackage{tikzffbd}
@@ -115,6 +115,15 @@ Set `fill=false` for transparent blocks, `font=serif` for traditional
 document typography, or `line-weight=heavy` for presentations. Use
 `direction=down` for a vertical primary flow. Annotations can be placed
 `below`, `above`, `left`, or `right`.
+
+The successor constraint evaluator treats `max-columns=5` and plain `\endrow`
+as hard requirements. `max-columns-strength=soft` and `\endrow[soft]` express
+strong preferences: a future solver may exceed them and records a cost when it
+does. An explicit annotation `position` is hard by default; set
+`position-strength=soft` for a strong preference. The environment level
+`annotations` side is a weak preference. With `multipage=true`, every solved
+page must fit the content area at the explicit `scale`. Invalid values and
+conflicting hard requirements produce diagnostics.
 
 The layout engine measures the rendered blocks, logical connectors, annotations,
 and condition labels before drawing. AND/OR connectors occupy their own stages,
