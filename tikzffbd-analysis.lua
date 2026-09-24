@@ -168,7 +168,11 @@ function M.analyze(spec)
 
   local result = {environment_id=spec.environment_id, root="@region/root",
     regions_by_id={}, fallback_subgraphs={}, ambiguities=ambiguities,
-    feedback_links={}, forward_order=copy(topo), group_region_ids={}}
+    feedback_links={}, forward_order=copy(topo), group_region_ids={}, flows={}}
+  for _, f in ipairs(spec.flows) do
+    result.flows[#result.flows+1] = {id=f.id, source=f.source,
+      target=f.target, kind=f.kind}
+  end
   local regions = result.regions_by_id
   local function add(id, kind, members, children, extra)
     local r = {id=id, kind=kind, ordered_children=children or {},
