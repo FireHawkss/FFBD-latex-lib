@@ -15,12 +15,14 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | 07 Ordering and coordinates | complete | 06 | [07.md](handoffs/07.md) |
 | 08 Routing and ports | complete | 07 | [08.md](handoffs/08.md) |
 | 09 Annotations, labels, quality | blocked | 06, 07, 08 | [09.md](handoffs/09.md) |
-| 10 TikZ renderer | ready | 01, 03; final integration 09 | pending |
+| 10 TikZ renderer | complete | 01, 03; final integration 09 | [10.md](handoffs/10.md) |
 | 11 Integration and release gates | waiting | 01–10 | pending |
 
 The production drawing pass is still the legacy prototype. Parts 01–08 have
 established contracts, a semantic Lua builder, the TeX input/measurement
 bridge, constraint evaluation, structural analysis, row/page planning, and
 measured placement and routing. Part 09 has a tested solver and Scene fixtures;
-its visual acceptance is blocked until part 10 renders successor Scenes. Part
-10 remains ready for implementation.
+its visual acceptance remains blocked pending integrated successor PDFs. Part
+10 renders mock and solved Scenes through TikZ with uniform explicit scale.
+Part 11 connects the sealed bridge to the solver and renderer and completes
+the integrated visual and Overleaf gates.

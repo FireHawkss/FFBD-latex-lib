@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage{tikzffbd}
+\begin{document}
+\ExplSyntaxOn
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/a} {First~$x^2$}
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/b} {Second}
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/cond} {yes}
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/type} {Risk}
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/body} {Check~valve}
+\prop_put:Nnn \l__ffbd_text_registry_prop {@text/test/cont} {Continued~on~next~page}
+\__ffbd_defaults:
+\__ffbd_styles:
+\ExplSyntaxOff
+\directlua{
+  local r=require("tikzffbd-renderer")
+  local scene={scale=.9,pages={}}
+  local function rect(x,y,w,h) return {x_sp=x,y_sp=y,width_sp=w,height_sp=h} end
+  scene.pages[1]={bounding_rect=rect(0,0,18000000,6000000),
+    node_rects={a=rect(0,0,6000000,4000000),b=rect(12000000,0,6000000,4000000)},
+    structure_rects={},annotations={{rect=rect(0,4400000,5000000,1600000),
+      type_ref="@text/test/type",body_ref="@text/test/body"}},
+    edge_labels={{rect=rect(8000000,1000000,2000000,1000000),text_ref="@text/test/cond"}},
+    continuation_markers={{rect=rect(12000000,4500000,6000000,1000000),text_ref="@text/test/cont"}},
+    flow_paths={f={points={{x_sp=6000000,y_sp=2000000},{x_sp=12000000,y_sp=2000000}}}}}
+  scene.pages[2]={bounding_rect=rect(0,0,6000000,4000000),
+    node_rects={a=rect(0,0,6000000,4000000)},structure_rects={},annotations={},
+    edge_labels={},continuation_markers={},flow_paths={}}
+  local styles={nodes={a={kind="function",text_ref="@text/test/a",number="1"},
+    b={kind="finish",text_ref="@text/test/b"}}}
+  tex.sprint(r.render(scene,nil,styles))
+}
+\ExplSyntaxOn
+\fp_compare:nNnF
+  {abs(\dim_to_fp:n{\l__ffbd_scene_scaled_width_dim}/
+        \dim_to_fp:n{\l__ffbd_scene_raw_width_dim}-.9)} < {.0001}
+  {\msg_fatal:nnn {tikzffbd}{scale}{renderer~box~ratio}}
+\iow_term:n {RENDERER-SCALE-OK}
+\ExplSyntaxOff
+\end{document}

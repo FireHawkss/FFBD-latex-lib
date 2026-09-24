@@ -1,0 +1,83 @@
+% TeX side of the solved-Scene renderer. Every coordinate is an integer sp.
+\box_new:N \l__ffbd_scene_box
+\box_new:N \l__ffbd_scene_scaled_box
+\dim_new:N \l__ffbd_scene_raw_width_dim
+\dim_new:N \l__ffbd_scene_scaled_width_dim
+\cs_new_protected:Npn \ffbdScenePageBegin #1#2 {
+  \fp_set:Nn \l__ffbd_explicit_scale_fp {#2}
+  \setbox\l__ffbd_scene_box=\hbox\bgroup
+    \begin{tikzpicture}[x=1sp,y=1sp]
+}
+\cs_new_protected:Npn \ffbdSceneBounds #1#2#3#4 {
+  \path[use~as~bounding~box] (#1sp,#2sp) rectangle
+    (\int_eval:n {#1+#3}sp,\int_eval:n {#2+#4}sp);
+}
+\cs_new_protected:Npn \ffbdSceneStructure #1#2#3#4#5 {
+  \path[ffbd/structure/#1] (#2sp,#3sp) rectangle
+    (\int_eval:n {#2+#4}sp,\int_eval:n {#3+#5}sp);
+}
+\cs_new_protected:Npn \ffbdSceneFlow #1 {\draw[ffbd/flow] #1;}
+\cs_new_protected:Npn \ffbdSceneNode #1#2#3#4#5#6#7#8 {
+  \path[ffbd/#1] (#2sp,#3sp) rectangle
+    (\int_eval:n {#2+#4}sp,\int_eval:n {#3+#5}sp);
+  \str_if_eq:nnTF {#1}{and}
+    {\__ffbd_scene_connector:nnnnn {#2}{#3}{#4}{#5}{#8}}
+    {\str_if_eq:nnTF {#1}{or}
+      {\__ffbd_scene_connector:nnnnn {#2}{#3}{#4}{#5}{#8}}
+      {\node[draw=none,fill=none,inner~sep=0pt,outer~sep=0pt,
+        font=\l__ffbd_font_tl,text=\l__ffbd_ink_tl,align=center,
+        text~width=\dim_eval:n {\l__ffbd_width_dim-4mm},anchor=center]
+        at (\fp_eval:n {#2+#4/2}sp,\fp_eval:n {#3+#5/2}sp)
+        {\tl_if_blank:nF {#7} {{\bfseries\scriptsize #7}\\[-1pt]}
+          \ffbdTextByRef{#6}};}}
+}
+\cs_new_protected:Npn \__ffbd_scene_connector:nnnnn #1#2#3#4#5 {
+  \node[draw=none,fill=none,inner~sep=0pt,outer~sep=0pt,
+    font=\sffamily\bfseries\scriptsize,text=\l__ffbd_ink_tl,anchor=center]
+    at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp) {#5};
+}
+\cs_new_protected:Npn \ffbdSceneStructureText #1#2#3#4#5#6 {
+  \tl_if_blank:nF {#5} {
+    \node[ffbd/structure-type,anchor=north~west]
+      at (\int_eval:n {#1+65536}sp,\int_eval:n {#2+#4-65536}sp)
+      {\ffbdTextByRef{#5}};
+  }
+  \tl_if_blank:nF {#6} {
+    \node[ffbd/structure-info,anchor=south~east]
+      at (\int_eval:n {#1+#3-65536}sp,\int_eval:n {#2+65536}sp)
+      {\ffbdTextByRef{#6}};
+  }
+}
+\cs_new_protected:Npn \ffbdSceneAnnotation #1#2#3#4#5#6 {
+  \path[ffbd/annotation] (#1sp,#2sp) rectangle
+    (\int_eval:n {#1+#3}sp,\int_eval:n {#2+#4}sp);
+  \node[font=\sffamily\scriptsize,text=\l__ffbd_ink_tl,
+    text~width=\dim_eval:n {\l__ffbd_width_dim-2mm},align=left,
+    inner~sep=0pt,outer~sep=0pt,anchor=center]
+    at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp)
+    {\textbf{\ffbdTextByRef{#5}:}~\ffbdTextByRef{#6}};
+}
+\cs_new_protected:Npn \ffbdSceneLabel #1#2#3#4#5 {
+  \node[ffbd/edge-label,align=center,
+    text~width=\dim_eval:n {#3sp-2.4pt}]
+    at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp)
+    {\ffbdTextByRef{#5}};
+}
+\cs_new_protected:Npn \ffbdSceneContinuation #1#2#3#4#5 {
+  \node[font=\sffamily\scriptsize,text=\l__ffbd_ink_tl,
+    inner~sep=0pt,outer~sep=0pt]
+    at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp)
+    {\ffbdTextByRef{#5}};
+}
+\cs_new_protected:Npn \ffbdScenePageEnd {
+    \end{tikzpicture}
+  \egroup
+  \dim_set:Nn \l__ffbd_scene_raw_width_dim {\box_wd:N \l__ffbd_scene_box}
+  \hbox_set:Nn \l__ffbd_scene_scaled_box {
+    \scalebox{\fp_to_decimal:N \l__ffbd_explicit_scale_fp}
+      {\box_use:N \l__ffbd_scene_box}}
+  \dim_set:Nn \l__ffbd_scene_scaled_width_dim {\box_wd:N \l__ffbd_scene_scaled_box}
+  \par\smallskip\noindent
+  \box_use:N \l__ffbd_scene_scaled_box
+  \par\smallskip
+}

@@ -14,6 +14,7 @@
 \usetikzlibrary{arrows.meta,backgrounds,calc,positioning}
 \ExplSyntaxOn
 \directlua{tikzffbd_path=assert(kpse.find_file("tikzffbd-bridge.lua"));tikzffbd_dir=tikzffbd_path:match("^(.*[/\\])")or"./";package.path=tikzffbd_dir.."?.lua;"..package.path;tikzffbd_bridge=dofile(tikzffbd_path)}
+\directlua{tikzffbd_renderer=require("tikzffbd-renderer")}
 
 % Messages
 \msg_new:nnn {tikzffbd}{duplicate}{Function~identifier~'#1'~is~already~declared.}
@@ -502,6 +503,7 @@
 % uses the same measured bounds (including transparent shapes).
 \file_input:n {tikzffbd-layout.code.tex}
 \file_input:n {tikzffbd-bridge.code.tex}
+\file_input:n {tikzffbd-renderer.code.tex}
 
 \cs_new_protected:Npn \__ffbd_begin:n #1{
   \__ffbd_defaults:
