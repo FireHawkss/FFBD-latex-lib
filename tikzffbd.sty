@@ -1,6 +1,6 @@
 %% tikzffbd.sty -- Functional Flow Block Diagrams without low-level TikZ
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage{tikzffbd}{2026-09-22}{0.4.1}
+\ProvidesExplPackage{tikzffbd}{2026-09-24}{0.5.0}
   {Automatic, polished Functional Flow Block Diagrams}
 
 \ExplSyntaxOff
@@ -15,6 +15,7 @@
 \ExplSyntaxOn
 \directlua{tikzffbd_path=assert(kpse.find_file("tikzffbd-bridge.lua"));tikzffbd_dir=tikzffbd_path:match("^(.*[/\\])")or"./";package.path=tikzffbd_dir.."?.lua;"..package.path;tikzffbd_bridge=dofile(tikzffbd_path)}
 \directlua{tikzffbd_renderer=require("tikzffbd-renderer")}
+\directlua{tikzffbd_solver=require("tikzffbd-solver")}
 
 % Messages
 \msg_new:nnn {tikzffbd}{duplicate}{Function~identifier~'#1'~is~already~declared.}
@@ -529,7 +530,8 @@
 }
 \NewDocumentEnvironment{ffbd}{O{}}
   {\__ffbd_begin:n {#1}}
-  {\__ffbd_bridge_finish: \__ffbd_render:}
+  {\__ffbd_bridge_finish: \__ffbd_bridge_prepare_continuations:
+    \__ffbd_scene_render:}
 
 \ExplSyntaxOff
 \endinput

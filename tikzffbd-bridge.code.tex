@@ -107,6 +107,21 @@
     \number\paperwidth,\number\paperheight,
     \number\textwidth,\number\textheight)}
 }
+\cs_new_protected:Npn \ffbdRegisterContinuation #1#2 {
+  \prop_put:Nnn \l__ffbd_text_registry_prop {#1}{#2}
+  \hbox_set:Nn \l__ffbd_bridge_box
+    {\tikz{\node[font=\sffamily\scriptsize,inner~sep=0pt,outer~sep=0pt]{#2};}}
+  \directlua{tikzffbd_bridge.generated_text("#1",
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\box_ht:N\l__ffbd_bridge_box,
+    \number\box_dp:N\l__ffbd_bridge_box)}
+}
+\cs_new_protected:Npn \__ffbd_bridge_prepare_continuations: {
+  \directlua{tikzffbd_bridge.prepare_continuations()}
+}
+\cs_new_protected:Npn \__ffbd_scene_render: {
+  \directlua{tikzffbd_bridge.render()}
+}
 \RenewDocumentCommand \ffbdFunction {O{}mm}{
   \__ffbd_node:nnnn {#2}{#3}{function}{#1}
   \__ffbd_bridge_node:nnn {function}{#2}{#3}}

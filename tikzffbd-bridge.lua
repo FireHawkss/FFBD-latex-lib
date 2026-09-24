@@ -1,6 +1,8 @@
 -- TeX input and measurement boundary. Raw TeX tokens remain in TeX.
 local model = require("tikzffbd-model")
 local constraints = require("tikzffbd-constraints")
+local planner = require("tikzffbd-planner")
+local analysis = require("tikzffbd-analysis")
 local M = {last = nil}
 local current
 
@@ -127,5 +129,49 @@ function M.finish(page_width, page_height, content_width, content_height)
     for _, e in ipairs(constraint_errors) do tex.error("tikzffbd: " .. e.message) end
   end
   return M.last
+end
+function M.prepare_continuations()
+  local last = assert(M.last)
+  if not last.Spec or not last.Constraints then return end
+  local plans = planner.plan(analysis.analyze(last.Spec),last.Metrics,last.Constraints,last.Frame)
+  if not plans then return end
+  local refs = {}
+  for _,plan in ipairs(plans) do
+    for _,page in ipairs(plan.pages) do
+      for _,mark in ipairs(page.continuation_markers or {}) do
+        refs[mark.text_ref] = mark.label
+      end
+    end
+  end
+  local keys = {}
+  for ref in pairs(refs) do keys[#keys+1] = ref end
+  table.sort(keys)
+  for _,ref in ipairs(keys) do
+    tex.sprint("\\ffbdRegisterContinuation{" .. ref .. "}{" .. refs[ref] .. "}")
+  end
+end
+function M.generated_text(ref,width,height,depth)
+  local last = assert(M.last)
+  assert(not last.Metrics.by_text_ref[ref], "duplicate generated text reference")
+  last.Metrics.by_text_ref[ref] = {width_sp=dimension(width),
+    height_sp=dimension(height),depth_sp=dimension(depth)}
+end
+function M.render()
+  local last = assert(M.last)
+  if not last.Spec or not last.Constraints then return end
+  local scene, errors = require("tikzffbd-solver").solve(last.Spec,last.Metrics,last.Frame)
+  if not scene then
+    for _,e in ipairs(errors) do tex.error("tikzffbd [" .. e.code .. "]: " .. e.message) end
+    return
+  end
+  last.Scene = scene
+  texio.write_nl("log", string.format("tikzffbd scene: pages=%d candidates=%d/%d budget_exhausted=%s",
+    #scene.pages,scene.quality.candidates_evaluated,scene.quality.search_budget,
+    tostring(scene.quality.budget_exhausted)))
+  for _,d in ipairs(scene.diagnostics or {}) do
+    if d.severity == "warning" then texio.write_nl("term and log","tikzffbd warning [" .. d.code .. "]: " .. d.message) end
+  end
+  tex.sprint(require("tikzffbd-renderer").render(scene,nil,
+    require("tikzffbd-renderer").styles_from_spec(last.Spec)))
 end
 return M

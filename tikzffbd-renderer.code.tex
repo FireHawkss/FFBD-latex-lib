@@ -6,7 +6,7 @@
 \cs_new_protected:Npn \ffbdScenePageBegin #1#2 {
   \fp_set:Nn \l__ffbd_explicit_scale_fp {#2}
   \setbox\l__ffbd_scene_box=\hbox\bgroup
-    \begin{tikzpicture}[x=1sp,y=1sp]
+    \begin{tikzpicture}[x=1sp,y=1sp,yscale=-1]
 }
 \cs_new_protected:Npn \ffbdSceneBounds #1#2#3#4 {
   \path[use~as~bounding~box] (#1sp,#2sp) rectangle
