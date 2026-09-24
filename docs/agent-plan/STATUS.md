@@ -7,9 +7,9 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | Part | State | Depends on | Handoff |
 | --- | --- | --- | --- |
 | 01 Contracts and fixtures | complete | — | [01.md](handoffs/01.md) |
-| 02 Semantic model | ready | 01 | pending |
-| 03 TeX bridge and measurement | waiting | 01, 02 | pending |
-| 04 Constraints and diagnostics | waiting | 01, 02 | pending |
+| 02 Semantic model | complete | 01 | [02.md](handoffs/02.md) |
+| 03 TeX bridge and measurement | ready | 01, 02 | pending |
+| 04 Constraints and diagnostics | ready | 01, 02 | pending |
 | 05 Structural analysis | waiting | 02, 04 | pending |
 | 06 Serpentine rows and pages | waiting | 03, 04, 05 | pending |
 | 07 Ordering and coordinates | waiting | 06 | pending |
@@ -18,5 +18,6 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | 10 TikZ renderer | waiting | 01, 03; final integration 09 | pending |
 | 11 Integration and release gates | waiting | 01–10 | pending |
 
-The production code is still the legacy prototype. Part 01 has established
-development-time contracts and fixtures; part 02 is the next implementation.
+The production code is still the legacy prototype. Parts 01 and 02 have
+established contracts, fixtures, and the semantic Lua builder; parts 03 and
+04 are ready for implementation.
