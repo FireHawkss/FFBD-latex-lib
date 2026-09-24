@@ -1,0 +1,26 @@
+\documentclass{article}
+\usepackage{tikzffbd}
+\newcommand\BridgeMacro{Macro OK}
+\begin{document}
+\begin{ffbd}[scale=1.25,multipage=true,max-columns=2,max-columns-strength=soft]
+  \start{s}{Start}
+  \function{a}{\BridgeMacro{} $x^2$ \& 50\% \_ done!}
+  \finish{z}{Finish}
+  \flow[condition={Ready? $x>0$}]{s}{a}
+  \endrow[soft]
+  \flow{a}{z}
+  \annotation[type=Risk,position=top-left,position-strength=soft]{a}{Check \textbf{bold} \& safe.}
+  \ExplSyntaxOn
+  \hbox_set:Nn \l_tmpa_box
+    {\tikz{\node[ffbd/function]{\__ffbd_node_text:n{a}};}}
+  \directlua{bridge_expected_width=\number\box_wd:N\l_tmpa_box}
+  \ExplSyntaxOff
+\end{ffbd}
+\directlua{local x=tikzffbd_bridge.last; assert(x.Spec.environment_id=="env-1"); assert(x.Spec.options.scale==1.25); assert(x.Spec.options.multipage==true); assert(x.Spec.options.max_columns_strength=="soft"); assert(x.Spec.constraints[1].strength=="strong"); assert(x.Spec.annotations[1].preferred_position=="top-left"); assert(x.Spec.annotations[1].position_strength=="soft"); assert(x.Metrics.by_node_id.a.width_sp>1700000); assert(x.Metrics.by_node_id.a.height_sp>700000); assert(math.abs(x.Metrics.by_node_id.a.width_sp-bridge_expected_width)<=1); assert(x.Metrics.by_text_ref[x.Spec.nodes[2].text_ref]); assert(x.Metrics.by_text_ref[x.Spec.flows[1].condition_ref]); assert(x.Frame.scale==1.25); texio.write_nl("BRIDGE-FIRST-OK")}
+\begin{ffbd}
+  \start{s}{Again}
+  \finish{z}{Done}
+  \flow{s}{z}
+\end{ffbd}
+\directlua{local x=tikzffbd_bridge.last; assert(x.Spec.environment_id=="env-2"); assert(x.Spec.nodes[1].text_ref:sub(1,12)=="@text/env-2/"); assert(x.Metrics.by_text_ref["@text/env-1/1"]==nil); assert(x.Spec.options.scale==1); texio.write_nl("BRIDGE-SECOND-OK")}
+\end{document}

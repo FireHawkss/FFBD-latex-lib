@@ -1,12 +1,17 @@
 # tikzffbd
 
 `tikzffbd` is an early LaTeX library for producing polished Functional Flow
-Block Diagrams without writing low-level TikZ positioning code. It targets
-pdfLaTeX and Overleaf first and uses only engine-neutral LaTeX/TikZ features.
+Block Diagrams without writing low-level TikZ positioning code. It requires
+LuaLaTeX. The TeX input bridge is in place; drawing still uses the prototype
+layout while the successor solver is being built.
 
 ## Quick start
 
-Place `tikzffbd.sty` and `tikzffbd-layout.code.tex` beside your document and load it:
+Place `tikzffbd.sty`, `tikzffbd-layout.code.tex`,
+`tikzffbd-bridge.code.tex`, `tikzffbd-bridge.lua`, and
+`tikzffbd-model.lua` beside your document. Compile with LuaLaTeX, locally or
+with Overleaf's compiler set to LuaLaTeX. No shell escape or preprocessing is
+needed. Load the package with:
 
 ```latex
 \usepackage{tikzffbd}
@@ -81,6 +86,8 @@ External annotations are available as:
 \timing{function-id}{Within 5 seconds}
 \note{function-id}{Operator may cancel}
 \annotation[Risk]{function-id}{Loss of external service}
+\annotation[type=Risk,position=top-left,position-strength=soft]
+  {function-id}{Loss of external service}
 ```
 
 ## Appearance and layout
@@ -97,6 +104,9 @@ and `monochrome`:
   direction=right,
   wrap=true,
   max-columns=5,
+  max-columns-strength=hard,
+  scale=1,
+  multipage=false,
   port-stub=6mm
 ]
 ```
@@ -123,8 +133,10 @@ starts directly across the gutter and reverses direction. An explicit row end
 is honored even with `wrap=false`. Without `\endrow`, use `wrap=false` for one
 continuous row.
 The complex example uses landscape paper with `max-columns=8` to retain readable
-text. A final size check scales an over-wide diagram to `\linewidth` unless
-`scale-to-fit=false` is selected. Page orientation alone cannot repair collisions.
+text. Automatic scaling is off by default; `scale` records an explicit positive
+value for the successor renderer. `multipage`, soft column limits, soft
+`\endrow[soft]`, and annotation positions are captured by the input bridge;
+the prototype renderer does not yet apply those solver controls.
 
 Arrows use orthogonal routes checked against the measured rectangles of all
 blocks and annotations, including transparent ones. Feedback uses an outer

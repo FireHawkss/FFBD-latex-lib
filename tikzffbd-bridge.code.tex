@@ -1,0 +1,204 @@
+% Input capture and exact styled-box measurements for the Lua pipeline.
+\int_new:N \g__ffbd_bridge_env_int
+\int_new:N \l__ffbd_bridge_text_int
+\int_new:N \l__ffbd_bridge_annotation_int
+\tl_new:N \l__ffbd_bridge_env_tl
+\tl_new:N \l__ffbd_bridge_ref_tl
+\tl_new:N \l__ffbd_bridge_condition_tl
+\tl_new:N \l__ffbd_bridge_type_ref_tl
+\tl_new:N \l__ffbd_bridge_body_ref_tl
+\tl_new:N \l__ffbd_bridge_position_tl
+\tl_new:N \l__ffbd_bridge_position_strength_tl
+\tl_new:N \l__ffbd_bridge_type_tl
+\box_new:N \l__ffbd_bridge_box
+\int_new:N \l__ffbd_bridge_header_width_int
+\int_new:N \l__ffbd_bridge_header_height_int
+\int_new:N \l__ffbd_bridge_info_width_int
+\prop_new:N \l__ffbd_text_registry_prop
+\msg_new:nnn {tikzffbd}{scale}{Scale~must~be~positive.}
+\keys_define:nn {tikzffbd/annotation}{
+  type .tl_set:N=\l__ffbd_bridge_type_tl,
+  position .choices:nn={top-left,top-center,top-right,left,right,bottom-left,bottom-center,bottom-right}
+    {\tl_set:Nx \l__ffbd_bridge_position_tl {\l_keys_choice_tl}},
+  position-strength .choices:nn={hard,soft}
+    {\tl_set:Nx \l__ffbd_bridge_position_strength_tl {\l_keys_choice_tl}}
+}
+\cs_new_protected:Npn \__ffbd_bridge_begin:{
+  \fp_compare:nNnF {\l__ffbd_explicit_scale_fp} > {0}
+    {\msg_error:nn {tikzffbd}{scale}}
+  \int_gincr:N \g__ffbd_bridge_env_int
+  \tl_set:Nx \l__ffbd_bridge_env_tl {env-\int_use:N\g__ffbd_bridge_env_int}
+  \int_zero:N \l__ffbd_bridge_text_int
+  \int_zero:N \l__ffbd_bridge_annotation_int
+  \prop_clear:N \l__ffbd_text_registry_prop
+  \__ffbd_styles:
+  \directlua{tikzffbd_bridge.begin(
+    "\luaescapestring{\l__ffbd_bridge_env_tl}",
+    "\luaescapestring{\l__ffbd_direction_tl}",
+    "\luaescapestring{\l__ffbd_theme_tl}",
+    "\fp_to_decimal:N\l__ffbd_explicit_scale_fp",
+    "\bool_if:NTF\l__ffbd_multipage_bool{true}{false}",
+    "\int_use:N\l__ffbd_columns_int",
+    "\luaescapestring{\l__ffbd_columns_strength_tl}",
+    "\luaescapestring{\l__ffbd_annotation_place_tl}")}
+}
+% The property stores the original unexpanded token list. Lua sees only its key.
+\cs_new_protected:Npn \__ffbd_bridge_text:nn #1#2{
+  \int_incr:N \l__ffbd_bridge_text_int
+  \tl_set:Nx \l__ffbd_bridge_ref_tl
+    {@text/\l__ffbd_bridge_env_tl/\int_use:N\l__ffbd_bridge_text_int}
+  \prop_put:NVn \l__ffbd_text_registry_prop \l__ffbd_bridge_ref_tl {#2}
+  \hbox_set:Nn \l__ffbd_bridge_box {\tikz{\node[ffbd/#1]{#2};}}
+  \directlua{tikzffbd_bridge.text(
+    "\luaescapestring{\l__ffbd_bridge_ref_tl}",
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\box_ht:N\l__ffbd_bridge_box,
+    \number\box_dp:N\l__ffbd_bridge_box)}
+}
+\cs_new:Npn \ffbdTextByRef #1
+  {\prop_item:Nn \l__ffbd_text_registry_prop {#1}}
+\cs_new_protected:Npn \__ffbd_bridge_node:nnn #1#2#3{
+  \str_if_eq:nnTF {#1}{function}
+    {\__ffbd_bridge_text:nn {function}{#3}}
+    {\__ffbd_bridge_text:nn {terminal}{#3}}
+  \directlua{tikzffbd_bridge.node("#1","\luaescapestring{#2}",
+    "\luaescapestring{\l__ffbd_bridge_ref_tl}",
+    "\luaescapestring{\l__ffbd_requested_number_tl}")}
+  \hbox_set:Nn \l__ffbd_bridge_box {
+    \tikz{\node[ffbd/\str_if_eq:nnTF{#1}{function}{function}{terminal}]
+      {\__ffbd_node_text:n{#2}};}}
+  \directlua{tikzffbd_bridge.node_metrics("\luaescapestring{#2}",
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\dimexpr\box_ht:N\l__ffbd_bridge_box+\box_dp:N\l__ffbd_bridge_box\relax)}
+}
+\cs_new_protected:Npn \__ffbd_bridge_condition:n #1{
+  \tl_clear:N \l__ffbd_bridge_condition_tl
+  \tl_if_blank:nF {#1}{
+    \__ffbd_bridge_text:nn {edge-label}{#1}
+    \tl_set:NV \l__ffbd_bridge_condition_tl \l__ffbd_bridge_ref_tl
+  }
+}
+\cs_new_protected:Npn \__ffbd_bridge_annotation:nnn #1#2#3{
+  \int_incr:N \l__ffbd_bridge_annotation_int
+  \__ffbd_bridge_text:nn {annotation}{#1}
+  \tl_set:NV \l__ffbd_bridge_type_ref_tl \l__ffbd_bridge_ref_tl
+  \__ffbd_bridge_text:nn {annotation}{#3}
+  \tl_set:NV \l__ffbd_bridge_body_ref_tl \l__ffbd_bridge_ref_tl
+  \hbox_set:Nn \l__ffbd_bridge_box
+    {\tikz{\node[ffbd/annotation]{\textbf{#1:}~#3};}}
+  \directlua{tikzffbd_bridge.annotation(
+    "annotation-\int_use:N\l__ffbd_bridge_annotation_int",
+    "\luaescapestring{#2}",
+    "\luaescapestring{\l__ffbd_bridge_type_ref_tl}",
+    "\luaescapestring{\l__ffbd_bridge_body_ref_tl}",
+    "\luaescapestring{\l__ffbd_bridge_position_tl}",
+    "\luaescapestring{\l__ffbd_bridge_position_strength_tl}")
+    tikzffbd_bridge.annotation_metrics(
+    "annotation-\int_use:N\l__ffbd_bridge_annotation_int",
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\dimexpr\box_ht:N\l__ffbd_bridge_box+\box_dp:N\l__ffbd_bridge_box\relax)}
+}
+\cs_new_protected:Npn \__ffbd_bridge_annotation_defaults:{
+  \tl_clear:N \l__ffbd_bridge_position_tl
+  \tl_clear:N \l__ffbd_bridge_position_strength_tl
+}
+\cs_new_protected:Npn \__ffbd_bridge_finish:{
+  \directlua{tikzffbd_bridge.finish(
+    \number\paperwidth,\number\paperheight,
+    \number\textwidth,\number\textheight)}
+}
+\RenewDocumentCommand \ffbdFunction {O{}mm}{
+  \__ffbd_node:nnnn {#2}{#3}{function}{#1}
+  \__ffbd_bridge_node:nnn {function}{#2}{#3}}
+\RenewDocumentCommand \ffbdStart {O{}mm}{
+  \__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}
+  \__ffbd_bridge_node:nnn {start}{#2}{#3}}
+\RenewDocumentCommand \ffbdFinish {O{}mm}{
+  \__ffbd_node:nnnn {#2}{#3}{terminal}{number=none,#1}
+  \__ffbd_bridge_node:nnn {finish}{#2}{#3}}
+\NewDocumentCommand \ffbdFlow {O{}mm}{
+  \__ffbd_legacy_flow[#1]{#2}{#3}
+  \exp_args:NV \__ffbd_bridge_condition:n \l__ffbd_edge_label_tl
+  \directlua{tikzffbd_bridge.flow("\luaescapestring{#2}",
+    "\luaescapestring{#3}","\luaescapestring{\l__ffbd_bridge_condition_tl}")}}
+\cs_new_protected:Npn \__ffbd_bridge_branch_plain:n #1
+  {\__ffbd_bridge_branch_arm:nn {#1}{}}
+\cs_new_protected:Npn \__ffbd_bridge_branch_arm:nn #1#2{
+  \__ffbd_bridge_condition:n {#2}
+  \directlua{tikzffbd_bridge.branch_arm("\luaescapestring{#1}",
+    "\luaescapestring{\l__ffbd_bridge_condition_tl}")}}
+\NewDocumentCommand \ffbdBranch {O{and}mm}{
+  \__ffbd_legacy_branch[#1]{#2}{#3}
+  \directlua{tikzffbd_bridge.branch_begin("\luaescapestring{#2}","#1")}
+  \keyval_parse:NNn \__ffbd_bridge_branch_plain:n \__ffbd_bridge_branch_arm:nn {#3}
+  \directlua{tikzffbd_bridge.branch_end()}
+  \hbox_set:Nn \l__ffbd_bridge_box {\tikz{\node[ffbd/#1]{\str_uppercase:n{#1}};}}
+  \directlua{tikzffbd_bridge.connector_metrics(
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\dimexpr\box_ht:N\l__ffbd_bridge_box+\box_dp:N\l__ffbd_bridge_box\relax)}}
+\NewDocumentCommand \ffbdJoin {O{and}mm}{
+  \__ffbd_legacy_join[#1]{#2}{#3}
+  \directlua{tikzffbd_bridge.join("\luaescapestring{#2}",
+    "\luaescapestring{#3}","#1")}
+  \hbox_set:Nn \l__ffbd_bridge_box {\tikz{\node[ffbd/#1]{\str_uppercase:n{#1}};}}
+  \directlua{tikzffbd_bridge.connector_metrics(
+    \number\box_wd:N\l__ffbd_bridge_box,
+    \number\dimexpr\box_ht:N\l__ffbd_bridge_box+\box_dp:N\l__ffbd_bridge_box\relax)}}
+\NewDocumentCommand \ffbdEndRow {O{hard}}{
+  \__ffbd_legacy_endrow
+  \directlua{tikzffbd_bridge.row_break(
+    "\luaescapestring{\l__ffbd_last_forward_tl}","#1")}}
+\NewDocumentCommand \ffbdLoopFlow {O{}mm}{
+  \__ffbd_legacy_loop[#1]{#2}{#3}
+  \exp_args:NV \__ffbd_bridge_condition:n \l__ffbd_loop_label_tl
+  \directlua{tikzffbd_bridge.feedback("\luaescapestring{#2}",
+    "\luaescapestring{#3}","\luaescapestring{\l__ffbd_bridge_condition_tl}",
+    "\luaescapestring{\l__ffbd_loop_side_tl}")}}
+\NewDocumentCommand \ffbdStructure {O{}mm}{
+  \__ffbd_legacy_structure[#1]{#2}{#3}
+  \tl_clear:N \l__ffbd_bridge_type_ref_tl
+  \tl_clear:N \l__ffbd_bridge_body_ref_tl
+  \int_zero:N \l__ffbd_bridge_header_width_int
+  \int_zero:N \l__ffbd_bridge_header_height_int
+  \int_zero:N \l__ffbd_bridge_info_width_int
+  \tl_if_blank:VF \l__ffbd_structure_type_tl {
+    \exp_args:NnV \__ffbd_bridge_text:nn {structure-type}\l__ffbd_structure_type_tl
+    \tl_set:NV \l__ffbd_bridge_type_ref_tl \l__ffbd_bridge_ref_tl
+    \int_set:Nn \l__ffbd_bridge_header_width_int {\box_wd:N\l__ffbd_bridge_box}
+    \int_set:Nn \l__ffbd_bridge_header_height_int
+      {\box_ht:N\l__ffbd_bridge_box+\box_dp:N\l__ffbd_bridge_box}}
+  \tl_if_blank:VF \l__ffbd_structure_info_tl {
+    \exp_args:NnV \__ffbd_bridge_text:nn {structure-info}\l__ffbd_structure_info_tl
+    \tl_set:NV \l__ffbd_bridge_body_ref_tl \l__ffbd_bridge_ref_tl
+    \int_set:Nn \l__ffbd_bridge_info_width_int {\box_wd:N\l__ffbd_bridge_box}}
+  \directlua{tikzffbd_bridge.structure("\luaescapestring{#2}",
+    "\luaescapestring{#3}",
+    "\luaescapestring{\clist_use:Nn\l__ffbd_structure_inputs_clist{,}}",
+    "\luaescapestring{\clist_use:Nn\l__ffbd_structure_outputs_clist{,}}",
+    "\luaescapestring{\l__ffbd_bridge_type_ref_tl}",
+    "\luaescapestring{\l__ffbd_bridge_body_ref_tl}",
+    "\luaescapestring{\l__ffbd_structure_style_tl}")}
+  \directlua{tikzffbd_bridge.structure_metrics("\luaescapestring{#2}",
+    \int_use:N\l__ffbd_bridge_header_width_int,
+    \int_use:N\l__ffbd_bridge_header_height_int,
+    \int_use:N\l__ffbd_bridge_info_width_int)}}
+\NewDocumentCommand \ffbdPrecondition {mm}{
+  \__ffbd_legacy_precondition{#1}{#2}
+  \__ffbd_bridge_annotation_defaults:
+  \__ffbd_bridge_annotation:nnn {Pre}{#1}{#2}}
+\NewDocumentCommand \ffbdTiming {mm}{
+  \__ffbd_legacy_timing{#1}{#2}
+  \__ffbd_bridge_annotation_defaults:
+  \__ffbd_bridge_annotation:nnn {Time}{#1}{#2}}
+\NewDocumentCommand \ffbdNote {mm}{
+  \__ffbd_legacy_note{#1}{#2}
+  \__ffbd_bridge_annotation_defaults:
+  \__ffbd_bridge_annotation:nnn {Note}{#1}{#2}}
+\NewDocumentCommand \ffbdAnnotation {O{Info}mm}{
+  \__ffbd_bridge_annotation_defaults:
+  \tl_set:Nn \l__ffbd_bridge_type_tl {Info}
+  \tl_if_in:nnTF {#1}{=}
+    {\keys_set:nn {tikzffbd/annotation}{#1}}
+    {\tl_set:Nn \l__ffbd_bridge_type_tl {#1}}
+  \exp_args:NV \__ffbd_annotate:nnn \l__ffbd_bridge_type_tl {#2}{#3}
+  \exp_args:NV \__ffbd_bridge_annotation:nnn \l__ffbd_bridge_type_tl {#2}{#3}}
