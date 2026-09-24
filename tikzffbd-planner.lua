@@ -278,6 +278,7 @@ function M.plan(regions, metrics, constraints, frame)
           search_budget=expansion_budget,candidates_evaluated=stats.expanded,
           budget_exhausted=stats.expanded>=expansion_budget,pruned=stats.pruned,
           route_gap_sp=route_gap,row_gap_sp=row_gap,
+          usable_primary_sp=math.floor(primary_limit),usable_cross_sp=math.floor(cross_limit),
           note_allowance_sp=note_allowance,label_primary_allowance_sp=label_primary_allowance}}
       local proxy={structures={}}
       for _, rid in ipairs(regions.group_region_ids or {}) do

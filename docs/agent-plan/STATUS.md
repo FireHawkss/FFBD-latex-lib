@@ -12,13 +12,13 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | 04 Constraints and diagnostics | complete | 01, 02 | [04.md](handoffs/04.md) |
 | 05 Structural analysis | complete | 02, 04 | [05.md](handoffs/05.md) |
 | 06 Serpentine rows and pages | complete | 03, 04, 05 | [06.md](handoffs/06.md) |
-| 07 Ordering and coordinates | ready | 06 | pending |
-| 08 Routing and ports | waiting | 07 | pending |
+| 07 Ordering and coordinates | complete | 06 | [07.md](handoffs/07.md) |
+| 08 Routing and ports | ready | 07 | pending |
 | 09 Annotations, labels, quality | waiting | 06, 07, 08 | pending |
 | 10 TikZ renderer | ready | 01, 03; final integration 09 | pending |
 | 11 Integration and release gates | waiting | 01–10 | pending |
 
-The production drawing pass is still the legacy prototype. Parts 01–06 have
+The production drawing pass is still the legacy prototype. Parts 01–07 have
 established contracts, a semantic Lua builder, the TeX input/measurement
-bridge, constraint evaluation, structural analysis, and row/page planning.
-Parts 07 and 10 are ready for implementation.
+bridge, constraint evaluation, structural analysis, row/page planning, and
+measured placement. Parts 08 and 10 are ready for implementation.
