@@ -13,7 +13,7 @@
 \RequirePackage{graphicx}
 \usetikzlibrary{arrows.meta,backgrounds,calc,positioning}
 \ExplSyntaxOn
-\directlua{tikzffbd_path=assert(kpse.find_file("tikzffbd-bridge.lua"));tikzffbd_dir=tikzffbd_path:match("^(.*[/\\])")or"./";package.path=tikzffbd_dir.."?.lua;"..package.path;tikzffbd_bridge=dofile(tikzffbd_path)}
+\directlua{dofile(assert(kpse.find_file("tikzffbd-loader.lua")))}
 \directlua{tikzffbd_renderer=require("tikzffbd-renderer")}
 \directlua{tikzffbd_solver=require("tikzffbd-solver")}
 

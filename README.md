@@ -69,3 +69,8 @@ lualatex -no-shell-escape -interaction=nonstopmode -halt-on-error examples/basic
 ```
 
 Development checks: `python3 tests/run_contracts.py`, the `texlua tests/run_*.lua` suites, and `python3 tests/run_integration.py`. The integration runner compiles the catalogue twice with shell escape disabled, checks geometry and determinism, and writes PDFs, traces, timing, memory and router-work results to `build/release/`. Package users do not need these scripts.
+
+For the example's latexmk build, run `latexmk -pdf 1st-real-world-use.tex`
+from `examples/`, or `latexmk -cd -pdf examples/1st-real-world-use.tex`
+from the repository root. Both recipes select LuaLaTeX through the checked-in
+`.latexmkrc` files and find the package modules.
