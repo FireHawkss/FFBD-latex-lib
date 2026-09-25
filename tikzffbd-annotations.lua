@@ -36,6 +36,9 @@ local function boxes(g,notes,page,omit)
       result[#result+1]={id=note.id,rect=note.rect}
     end
   end
+  for _,item in ipairs(g.structure_texts or {}) do
+    if item.page_index==page then result[#result+1]={id=item.id,rect=item.rect} end
+  end
   return result
 end
 local function fits_groups(g,spec,owner,box,page)
@@ -89,6 +92,23 @@ function M.note_candidates(note,g,spec,metrics,existing)
         type_ref=note.type_ref,body_ref=note.body_ref,page_index=page}
     end
   end
+  local preferred=note.preferred_position
+  local side=(spec.options or {}).annotations
+  local function priority(p)
+    if p==preferred then return 0 end
+    if not preferred and ((side=="above" and p:find("top",1,true))
+        or (side=="below" and p:find("bottom",1,true)) or p==side) then return 0 end
+    return 1
+  end
+  table.sort(result,function(a,b)
+    if a.position==b.position then return false end
+    if priority(a.position)~=priority(b.position) then return priority(a.position)<priority(b.position) end
+    for _,p in ipairs(M.positions) do
+      if a.position==p then return true end
+      if b.position==p then return false end
+    end
+    return false
+  end)
   return result
 end
 local function hits_path(box,points,pad)
@@ -124,15 +144,23 @@ function M.labels(spec,metrics,g,routes,notes)
         for i=2,#pts do
           local a,b=pts[i-1],pts[i]
           local length=math.abs(a.x_sp-b.x_sp)+math.abs(a.y_sp-b.y_sp)
-          if length>=math.min(w,h) then
-            local x,y
-            if a.y_sp==b.y_sp then x=(a.x_sp+b.x_sp-w)/2;y=a.y_sp-h-gap
-            else x=a.x_sp+gap;y=(a.y_sp+b.y_sp-h)/2 end
-            candidates[#candidates+1]={page_index=segment.page_index or path.page_index or owners[flow.source],
-              rect=rect(x,y,w,h),distance=round(length/2),segment=i}
-            if a.y_sp==b.y_sp then y=a.y_sp+gap else x=a.x_sp-w-gap end
-            candidates[#candidates+1]={page_index=segment.page_index or path.page_index or owners[flow.source],
-              rect=rect(x,y,w,h),distance=round(length/2),segment=i}
+          if length>0 then
+            -- Slide along the segment as well as trying both sides. Keep the
+            -- label's centre on the segment so association stays unambiguous.
+            for _,fraction in ipairs({0.5,0.25,0.75,0,1}) do
+              local cx=a.x_sp+(b.x_sp-a.x_sp)*fraction
+              local cy=a.y_sp+(b.y_sp-a.y_sp)*fraction
+              for side=1,2 do
+                local x,y
+                if a.y_sp==b.y_sp then
+                  x=cx-w/2;y=side==1 and cy-h-gap or cy+gap
+                else
+                  x=side==1 and cx+gap or cx-w-gap;y=cy-h/2
+                end
+                candidates[#candidates+1]={page_index=segment.page_index or path.page_index or owners[flow.source],
+                  rect=rect(x,y,w,h),distance=round(math.abs(fraction-0.5)*length),segment=i}
+              end
+            end
           end
         end
       end
@@ -156,7 +184,7 @@ function M.labels(spec,metrics,g,routes,notes)
         end
         if clear then
           for _,other in ipairs(spec.flows or {}) do
-            if other.id~=flow.id then
+            do
               local p=routes.paths_by_flow_id[other.id]
               for _,leg in ipairs(p and (p.page_segments or {p}) or {}) do
                 if (leg.page_index or p.page_index)==c.page_index and hits_path(c.rect,leg.points,gap) then

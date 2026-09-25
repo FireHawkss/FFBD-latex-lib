@@ -84,6 +84,12 @@ check(scene~=nil,issues and issues[1] and issues[1].message)
 check(scene.pages[1].edge_labels[1].flow_id==spec.flows[1].id,"label flow identity")
 check(scene.pages[1].edge_labels[1].text_ref=="@text/condition","label text")
 local huge=model.inspect(spec)
+-- Keep both endpoints in one row: the label cannot be rescued by allocating
+-- a huge inter-row gutter, which is now a valid measured-spacing alternative.
+huge.structures={{id="pair",index=99,member_ids={"n1","n2"},
+  input_member_ids={},output_member_ids={},style="plain"}}
+huge.constraints={{id="@constraint/keep",kind="keep-together",target_ids={"pair"},
+  value="row",strength="hard",source={command="test",declaration_index=100}}}
 m.by_text_ref["@text/condition"]={width_sp=5000,height_sp=1000,depth_sp=0}
 local unreadable,why=solver.solve(huge,m,f)
 check(unreadable==nil and why[1].code=="edge-label-conflict","unreadable label diagnoses")
@@ -157,6 +163,32 @@ local marker_count=0
 for _,page in ipairs(scene.pages) do marker_count=marker_count+#page.continuation_markers end
 check(marker_count>=2,"continuation markers in Scene")
 local multipage_scene=scene
+-- Search and visual-calibration regressions exposed by integrated examples.
+check(scene.quality.router_calls==scene.quality.candidates_evaluated,"every route attempt counted")
+check(scene.quality.router_work>=scene.quality.selected_router_work,"total router work includes selected candidate")
+local annotations=require("tikzffbd-annotations")
+local tiny={environment_id="short-label",options={},structures={},
+  flows={{id="@flow/1",source="a",target="b",condition_ref="@text/c"}}}
+local geometry={node_rects_by_id={a={x_sp=0,y_sp=0,width_sp=100,height_sp=50},
+  b={x_sp=0,y_sp=60,width_sp=100,height_sp=50}},
+  row_axes={{page_index=1,layers={{"a"},{"b"}}}},spacing_stats={route_gap_sp=4}}
+local metrics={by_text_ref={["@text/c"]={width_sp=20,height_sp=14}}}
+local routes={paths_by_flow_id={["@flow/1"]={page_index=1,points={
+  {x_sp=110,y_sp=48},{x_sp=110,y_sp=62}}}}}
+local labels=assert(annotations.labels(tiny,metrics,geometry,routes,{}))
+check(#labels==1,"short segment label can use clear outside flank")
+-- A label cannot cover another segment of its own bent route.
+routes.paths_by_flow_id["@flow/1"].points={
+  {x_sp=110,y_sp=48},{x_sp=110,y_sp=62},{x_sp=150,y_sp=62},
+  {x_sp=150,y_sp=80},{x_sp=110,y_sp=80}}
+labels=assert(annotations.labels(tiny,metrics,geometry,routes,{}))
+check(not annotations.hits_path(labels[1].rect,routes.paths_by_flow_id["@flow/1"].points,0),
+  "label clears every segment of its own flow")
+local one_row={pages={{rows={{ordered_node_ids={"a","b"}}}}}}
+local orphan={pages={{rows={{ordered_node_ids={"a"}},{ordered_node_ids={"b"}}}}}}
+check(quality.less(quality.vector(compact,one_row,{spacing_stats={}},{costs={}},{}),
+  quality.vector(compact,orphan,{spacing_stats={}},{costs={}},{})),"unnecessary wrap loses to primary row")
+
 -- Export a fully solved scene for the contract validator and renderer mock.
 b,m,f=fixture("scene-export",8)
 spec=assert(b:seal())

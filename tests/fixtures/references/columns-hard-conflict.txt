@@ -1,0 +1,13 @@
+! tikzffbd [no-feasible-rows]: No row plan fits the measured blocks, regions, a
+nd hard constraints at explicit scale 1.
+\__ffbd_scene_render: ...tikzffbd_bridge.render()}
+                                                  
+l.23 \end{ffbd}
+             
+ 1092 words of node memory still in use:
+   16 hlist, 1 vlist, 1 rule, 1 disc, 1 local_par, 1 dir, 18 glue, 3 kern, 1 pe
+nalty, 10 glyph, 64 attribute, 48 glue_spec, 64 attribute_list, 1 write, 39 pdf
+_literal, 3 pdf_colorstack nodes
+   avail lists: 2:132,3:41,4:4,5:27,6:2,7:33,9:17,10:1,11:1
+!  ==> Fatal error occurred, no output PDF file produced!
+Transcript written on columns-hard-conflict.log.

@@ -22,10 +22,10 @@ def load(path):
 
 
 def source_inventory(path):
-    """Count commands and branch/join arms in the five legacy reference files."""
+    """Count declarations and branch/join arms in catalogue sources."""
     source = "\n".join(line.split("%", 1)[0] for line in path.read_text(encoding="utf-8").splitlines())
     counts = {kind: len(re.findall(r"\\" + kind + r"(?:\[[^]]*\])?\{", source))
-              for kind in ("start", "function", "finish", "flow", "loopflow", "structure", "precondition", "timing", "note")}
+              for kind in ("start", "function", "finish", "flow", "loopflow", "structure", "precondition", "timing", "note", "annotation")}
     for command in ("branch", "join"):
         counts[command + "_logics"] = re.findall(r"\\" + command + r"\[(and|or)\]", source)
         counts[command + "_arms"] = 0
@@ -166,13 +166,13 @@ class ContractTests(unittest.TestCase):
                     self.assertTrue((ROOT / fixture["source"]).is_file())
                     actual = source_inventory(ROOT / fixture["source"])
                     semantic = fixture["semantic"]
-                    self.assertEqual(fixture["blocks"], actual["start"] + actual["function"] + actual["finish"])
+                    self.assertEqual(fixture.get("source_blocks",fixture["blocks"]), actual["start"] + actual["function"] + actual["finish"])
                     self.assertEqual(semantic["starts"], actual["start"])
                     self.assertEqual(semantic["finishes"], actual["finish"])
                     self.assertEqual(semantic["forward_flows"], actual["flow"] + actual["branch_arms"] + actual["join_arms"])
                     self.assertEqual(semantic["feedback_flows"], actual["loopflow"])
                     self.assertEqual(semantic["structures"], actual["structure"])
-                    self.assertEqual(semantic["annotations"], actual["precondition"] + actual["timing"] + actual["note"])
+                    self.assertEqual(semantic["annotations"], actual["precondition"] + actual["timing"] + actual["note"] + actual["annotation"])
                     self.assertEqual(semantic["split_logics"], actual["branch_logics"])
                     self.assertEqual(semantic["join_logics"], actual["join_logics"])
                 else:

@@ -1,0 +1,945 @@
+{
+  "engine": "This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)",
+  "timing_note": "First/repeat compilation; OS caches not flushed. Peak RSS includes LuaLaTeX.",
+  "results": [
+    {
+      "id": "basic-chain",
+      "source": "examples/basic.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.508,
+          "peak_rss_kib": 148372
+        },
+        {
+          "seconds": 1.514,
+          "peak_rss_kib": 155340
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": true,
+          "candidates_evaluated": 61,
+          "router_calls": 61,
+          "router_work": 564,
+          "search_budget": 64,
+          "selected_router_work": 9,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            102496625178170.0,
+            29485960,
+            0
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "solver-budget-exhausted",
+          "constraint_ids": [],
+          "message": "Search budget exhausted; returning best valid candidate",
+          "object_ids": [],
+          "severity": "warning",
+          "suggested_actions": [
+            "Reduce diagram congestion or split the diagram"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "complex-branches",
+      "source": "examples/complex.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 3.548,
+          "peak_rss_kib": 166032
+        },
+        {
+          "seconds": 3.508,
+          "peak_rss_kib": 169876
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 2,
+      "quality": [
+        {
+          "budget_exhausted": true,
+          "candidates_evaluated": 64,
+          "router_calls": 64,
+          "router_work": 47520,
+          "search_budget": 64,
+          "selected_router_work": 1305,
+          "vector": [
+            0,
+            0,
+            6,
+            1,
+            5.0569330896394e+28,
+            278444808,
+            0
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "solver-budget-exhausted",
+          "constraint_ids": [],
+          "message": "Search budget exhausted; returning best valid candidate",
+          "object_ids": [],
+          "severity": "warning",
+          "suggested_actions": [
+            "Reduce diagram congestion or split the diagram"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structures-feedback",
+      "source": "examples/structures.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.618,
+          "peak_rss_kib": 148612
+        },
+        {
+          "seconds": 1.602,
+          "peak_rss_kib": 163808
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 42,
+          "router_calls": 42,
+          "router_work": 540,
+          "search_budget": 64,
+          "selected_router_work": 15,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            370732031785530.0,
+            37143890,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "custom-down",
+      "source": "examples/customization.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.486,
+          "peak_rss_kib": 164256
+        },
+        {
+          "seconds": 1.458,
+          "peak_rss_kib": 149224
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 35,
+          "router_calls": 35,
+          "router_work": 297,
+          "search_budget": 64,
+          "selected_router_work": 6,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            97040687297364.0,
+            3415464,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "drone-real-world",
+      "source": "examples/1st-real-world-use.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 2.14,
+          "peak_rss_kib": 155508
+        },
+        {
+          "seconds": 2.159,
+          "peak_rss_kib": 154892
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 1041,
+          "search_budget": 64,
+          "selected_router_work": 484,
+          "vector": [
+            0,
+            0,
+            0,
+            3,
+            863485276813140.0,
+            170684294,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "chain-8",
+      "source": "tests/fixtures/visual/chain-8.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.477,
+          "peak_rss_kib": 144740
+        },
+        {
+          "seconds": 1.506,
+          "peak_rss_kib": 159920
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 126,
+          "search_budget": 64,
+          "selected_router_work": 14,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            69907043500147.0,
+            11184330,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "branches-15-unequal",
+      "source": "tests/fixtures/visual/branches-15-unequal.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.874,
+          "peak_rss_kib": 168720
+        },
+        {
+          "seconds": 1.962,
+          "peak_rss_kib": 153812
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 5585,
+          "search_budget": 64,
+          "selected_router_work": 43,
+          "vector": [
+            0,
+            0,
+            0,
+            2,
+            322409492085300.0,
+            69450712,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "branches-30-unequal",
+      "source": "tests/fixtures/visual/branches-30-unequal.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 3.032,
+          "peak_rss_kib": 167300
+        },
+        {
+          "seconds": 2.993,
+          "peak_rss_kib": 156544
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 17633,
+          "search_budget": 64,
+          "selected_router_work": 1922,
+          "vector": [
+            0,
+            0,
+            1,
+            4,
+            487039127195130.0,
+            112690970,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "joins-feedback-42",
+      "source": "tests/fixtures/visual/joins-feedback-42.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 4.569,
+          "peak_rss_kib": 170192
+        },
+        {
+          "seconds": 4.492,
+          "peak_rss_kib": 171980
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 2,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 35815,
+          "search_budget": 64,
+          "selected_router_work": 3485,
+          "vector": [
+            0,
+            0,
+            13,
+            6,
+            4.9629989131375e+28,
+            449833485,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "dense-text-conditions",
+      "source": "tests/fixtures/visual/dense-text-conditions.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 2.735,
+          "peak_rss_kib": 160692
+        },
+        {
+          "seconds": 2.897,
+          "peak_rss_kib": 182272
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": true,
+          "candidates_evaluated": 64,
+          "router_calls": 64,
+          "router_work": 33792,
+          "search_budget": 64,
+          "selected_router_work": 1024,
+          "vector": [
+            0,
+            0,
+            1,
+            2,
+            821906257195910.0,
+            214269970,
+            0
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "solver-budget-exhausted",
+          "constraint_ids": [],
+          "message": "Search budget exhausted; returning best valid candidate",
+          "object_ids": [],
+          "severity": "warning",
+          "suggested_actions": [
+            "Reduce diagram congestion or split the diagram"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "group-across-wrap",
+      "source": "tests/fixtures/visual/group-across-wrap.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.79,
+          "peak_rss_kib": 149184
+        },
+        {
+          "seconds": 1.857,
+          "peak_rss_kib": 168640
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 2,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 2,
+          "router_calls": 2,
+          "router_work": 43,
+          "search_budget": 64,
+          "selected_router_work": 31,
+          "vector": [
+            0,
+            0,
+            1,
+            2,
+            9.096137511219e+28,
+            52368447,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "columns-hard-conflict",
+      "source": "tests/fixtures/visual/columns-hard-conflict.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.218,
+          "peak_rss_kib": 139880
+        },
+        {
+          "seconds": 1.235,
+          "peak_rss_kib": 137712
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 0,
+      "quality": [],
+      "diagnostics": []
+    },
+    {
+      "id": "columns-soft",
+      "source": "tests/fixtures/visual/columns-soft.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.506,
+          "peak_rss_kib": 159888
+        },
+        {
+          "seconds": 1.489,
+          "peak_rss_kib": 144636
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 126,
+          "search_budget": 64,
+          "selected_router_work": 14,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            69907043500147.0,
+            11184330,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "rowbreak-hard-soft",
+      "source": "tests/fixtures/visual/rowbreak-hard-soft.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.624,
+          "peak_rss_kib": 146128
+        },
+        {
+          "seconds": 1.688,
+          "peak_rss_kib": 161252
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 192,
+          "search_budget": 64,
+          "selected_router_work": 22,
+          "vector": [
+            0,
+            0,
+            0,
+            2,
+            130179520132520.0,
+            17793252,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "annotations-eight",
+      "source": "tests/fixtures/visual/annotations-eight.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 1.833,
+          "peak_rss_kib": 146024
+        },
+        {
+          "seconds": 1.832,
+          "peak_rss_kib": 163044
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 8,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788753,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788753,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788753,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            14244813320037,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            14244813320037,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788752,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788752,
+            0,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 1,
+          "router_calls": 1,
+          "router_work": 0,
+          "search_budget": 64,
+          "selected_router_work": 0,
+          "vector": [
+            0,
+            0,
+            0,
+            0,
+            15966433788752,
+            0,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "scale-explicit",
+      "source": "tests/fixtures/visual/scale-explicit.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 2.037,
+          "peak_rss_kib": 148800
+        },
+        {
+          "seconds": 2.093,
+          "peak_rss_kib": 148532
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 3,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 126,
+          "search_budget": 64,
+          "selected_router_work": 14,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            69907043500147.0,
+            11184330,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 126,
+          "search_budget": 64,
+          "selected_router_work": 14,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            69907043500147.0,
+            11184330,
+            0
+          ]
+        },
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 124,
+          "search_budget": 64,
+          "selected_router_work": 14,
+          "vector": [
+            0,
+            0,
+            0,
+            1,
+            69907043500147.0,
+            11184330,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "large-64-single",
+      "source": "tests/fixtures/visual/large-64-single.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 3.8,
+          "peak_rss_kib": 168652
+        },
+        {
+          "seconds": 3.755,
+          "peak_rss_kib": 158956
+        }
+      ],
+      "tex_overflow": true,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 1022,
+          "search_budget": 64,
+          "selected_router_work": 126,
+          "vector": [
+            0,
+            0,
+            0,
+            12,
+            946429301517040.0,
+            102184104,
+            0
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "single-page-overflow",
+          "constraint_ids": [],
+          "message": "Solved diagram exceeds the content area at the explicit scale",
+          "object_ids": [],
+          "severity": "warning",
+          "suggested_actions": [
+            "Use landscape, enable multipage, or choose an explicit scale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "large-64-multipage",
+      "source": "tests/fixtures/visual/large-64-multipage.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 3.83,
+          "peak_rss_kib": 171528
+        },
+        {
+          "seconds": 3.763,
+          "peak_rss_kib": 171276
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 2,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 1072,
+          "search_budget": 64,
+          "selected_router_work": 134,
+          "vector": [
+            0,
+            0,
+            29,
+            11,
+            4.2442345324314e+27,
+            144481206,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "irregular-gap-adversary",
+      "source": "tests/fixtures/visual/irregular-gap-adversary.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 2.27,
+          "peak_rss_kib": 154152
+        },
+        {
+          "seconds": 2.282,
+          "peak_rss_kib": 155480
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 4386,
+          "search_budget": 64,
+          "selected_router_work": 539,
+          "vector": [
+            0,
+            0,
+            0,
+            4,
+            394179756837910.0,
+            91098448,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "displaced-label-adversary",
+      "source": "tests/fixtures/visual/displaced-label-adversary.tex",
+      "passed": true,
+      "errors": [],
+      "runs": [
+        {
+          "seconds": 2.101,
+          "peak_rss_kib": 151540
+        },
+        {
+          "seconds": 2.124,
+          "peak_rss_kib": 151548
+        }
+      ],
+      "tex_overflow": false,
+      "pages": 1,
+      "quality": [
+        {
+          "budget_exhausted": false,
+          "candidates_evaluated": 8,
+          "router_calls": 8,
+          "router_work": 260,
+          "search_budget": 64,
+          "selected_router_work": 30,
+          "vector": [
+            0,
+            0,
+            0,
+            3,
+            368787797069320.0,
+            28384668,
+            0
+          ]
+        }
+      ],
+      "diagnostics": []
+    }
+  ]
+}

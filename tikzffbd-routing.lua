@@ -195,14 +195,13 @@ local function overlap(a,b,c,d)
     if lo<hi then return pt(lo,a.y_sp),pt(hi,a.y_sp) end
   end
 end
-function M.route(g,spec,occupied_annotations)
+local function route_impl(g,spec,occupied_annotations,work)
   if type(g)~="table" or type(spec)~="table" or g.environment_id~=spec.environment_id then
     return nil,conflict("environment-mismatch","@flow/unknown","Geometry and Spec environments differ")
   end
   local gap=(g.spacing_stats or {}).route_gap_sp or 10
   local stub=math.max(2,math.floor(gap/5))
   local pad=math.max(0,math.floor(gap/10))
-  local work={n=0,exhausted=false}
   local routes={environment_id=spec.environment_id,paths_by_flow_id={},ports_by_id={},
     shared_trunks={},crossings={},congestion={},conflicts={},
     feedback_lanes={},
@@ -228,6 +227,9 @@ function M.route(g,spec,occupied_annotations)
   end
   for i,item in ipairs(occupied_annotations or {}) do
     obstacle(item.page_index or 1,item.id or "annotation-"..i,item.rect or item,pad,false)
+  end
+  for _,item in ipairs(g.structure_texts or {}) do
+    obstacle(item.page_index,item.id,item.rect,0,false)
   end
   for _,list in pairs(obs) do table.sort(list,function(a,b)return a.id<b.id end) end
   local prior,prior_flows={},{}
@@ -300,7 +302,7 @@ function M.route(g,spec,occupied_annotations)
               structure.input_member_ids
             local allowed=false
             for _,id in ipairs(declared or {}) do if id==node then allowed=true end end
-            if not allowed then return nil,"No declared "..role..
+            if not allowed and not other_inside then return nil,"No declared "..role..
               " boundary member for "..structure.id end
             local key
             for gid,owner_page in pairs(g.group_rect_page_by_id or {}) do
@@ -338,12 +340,12 @@ function M.route(g,spec,occupied_annotations)
         local x,y
         if spec.options.direction=="down" then
           x=mark.role=="out" and ext.x_sp+ext.width_sp+offset or
-            math.max(1,ext.x_sp-offset)
+            ext.x_sp-offset
           y=math.floor(ext.y_sp+ext.height_sp/2+0.5)
         else
           x=math.floor(ext.x_sp+ext.width_sp/2+0.5)
           y=mark.role=="out" and ext.y_sp+ext.height_sp+offset or
-            math.max(1,ext.y_sp-offset)
+            ext.y_sp-offset
         end
         local id="@port/"..suffix.."/continuation-"..
           mark.id:gsub("^@continuation/",""):gsub("/","-")
@@ -612,7 +614,8 @@ function M.route(g,spec,occupied_annotations)
       local a1,b1=points[i-1],points[i]
       local primary=spec.options.direction=="down" and
         b1.y_sp-a1.y_sp or b1.x_sp-a1.x_sp
-      if f.kind=="forward" and primary*(sign[f.source] or 1)<0 then
+      if f.kind=="forward" and row[f.source]==row[f.target]
+          and primary*(sign[f.source] or 1)<0 then
         routes.costs.wrong_way_sp=routes.costs.wrong_way_sp+math.abs(primary)
       end
       routes.costs.length_sp=routes.costs.length_sp+
@@ -643,5 +646,14 @@ function M.route(g,spec,occupied_annotations)
   end
   routes.costs.work_used=work.n;routes.costs.budget_exhausted=work.exhausted
   return routes
+end
+function M.route(g,spec,occupied_annotations)
+  local work={n=0,exhausted=false}
+  local routes,issue=route_impl(g,spec,occupied_annotations,work)
+  if issue then
+    issue.work_used=work.n;issue.work_budget=BUDGET
+    issue.budget_exhausted=work.exhausted
+  end
+  return routes,issue
 end
 return M

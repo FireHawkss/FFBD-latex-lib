@@ -56,13 +56,16 @@ Structures group existing functions. Declare boundary members with `inputs` and 
 | `max-columns-strength` | `hard` (default) or `soft` |
 | `multipage` | `false` (default) or `true`; each solved page is a separate TikZ picture |
 | `scale` | Positive number, default `1`; uniformly scales the complete picture on each page |
+| `block-width` | Measured block width, default `27mm`; changes text wrapping and layout footprints |
 | `annotations` | Preferred side: `above`, `below`, `left`, or `right` |
 | `fill`, `font`, `line-weight` | `true/false`; `sans/serif`; `thin/heavy` |
 
-The solver does not shrink a diagram automatically. When a hard layout cannot be met, compilation reports a diagnostic code and message. `scale-to-fit`, `wrap`, `block-width`, `column-sep`, `row-sep`, `port-stub`, and `layout-debug` remain accepted by the compatibility input layer, but do not currently control the solved layout; avoid relying on them in new documents.
+The solver does not shrink a diagram automatically. Hard layout failures produce diagnostics. Oversized single-page Scenes warn and recommend landscape, multipage, or an explicit scale. `scale-to-fit`, `wrap`, `column-sep`, `row-sep`, `port-stub`, `debug`, and `layout-debug` are retired: supplying one emits a warning and has no effect.
 
-The `examples/` directory contains basic, customized, structural, large, scaled, and multipage documents. The release handoff records which currently compile and which need further solver work. For a local smoke test:
+All documents in `examples/` compile locally. The complex example explicitly enables multipage output. Final human visual sign-off and Overleaf testing remain with the user; dense branch clarity still needs review. See the [review checklist](tests/fixtures/REVIEW.md) and [release report](docs/agent-plan/handoffs/11.md). For a local smoke test:
 
 ```sh
 lualatex -no-shell-escape -interaction=nonstopmode -halt-on-error examples/basic.tex
 ```
+
+Development checks: `python3 tests/run_contracts.py`, the `texlua tests/run_*.lua` suites, and `python3 tests/run_integration.py`. The integration runner compiles the catalogue twice with shell escape disabled, checks geometry and determinism, and writes PDFs, traces, timing, memory and router-work results to `build/release/`. Package users do not need these scripts.

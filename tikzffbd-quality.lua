@@ -20,6 +20,14 @@ function M.vector(scene,plan,geometry,routes,costs)
     blank_area=blank_area+math.max(0,area-occupied)
   end
   local displacement=0
+  local row_deviation=0
+  for _,page in ipairs(plan.pages or {}) do
+    row_deviation=row_deviation+math.max(0,#page.rows-1)
+    if #page.rows>1 and #page.rows[1].ordered_node_ids==1
+        and #(page.rows[1].forced_break_ids or {})==0 then
+      row_deviation=row_deviation+1
+    end
+  end
   for _,page in ipairs(scene.pages) do
     for _,note in ipairs(page.annotations) do
       if note.preferred_position and note.position~=note.preferred_position then
@@ -28,7 +36,7 @@ function M.vector(scene,plan,geometry,routes,costs)
     end
   end
   local vector={0,rc.wrong_way_sp or 0,(rc.crossings or 0)+#(routes.congestion or {}),
-    (costs.strong or 0)+(spacing.crossings_after or 0),
+    (costs.strong or 0)+(spacing.crossings_after or 0)+row_deviation,
     (spacing.gap_variance_sp2 or 0)+variance(whitespace)+blank_area+(costs.weak or 0),
     (rc.bends or 0)*((spacing.route_gap_sp or 10))+(rc.length_sp or 0),displacement}
   return vector

@@ -1,0 +1,36 @@
+\documentclass{article}
+\usepackage[a4paper,landscape,margin=16mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+\begin{document}
+\begin{ffbd}[max-columns=7,multipage=true]
+\start{n1}{Begin}
+\function{n2}{Step 1}
+\function{n3}{Step 2}
+\function{n4}{Step 3}
+\function{n5}{Step 4}
+\function{n6}{Step 5}
+\function{n7}{Step 6}
+\function{n8}{Step 7}
+\function{n9}{Step 8}
+\function{n10}{Step 9}
+\function{n11}{Step 10}
+\function{n12}{Step 11}
+\function{n13}{Step 12}
+\function{n14}{Step 13}
+\finish{n15}{Complete}
+\branch[and]{n1}{n2,n6}
+\flow{n2}{n3}
+\flow{n3}{n4}
+\flow{n4}{n5}
+\flow{n6}{n7}
+\flow{n7}{n8}
+\flow{n8}{n9}
+\flow{n9}{n10}
+\flow{n10}{n11}
+\flow{n11}{n12}
+\flow{n12}{n13}
+\flow{n13}{n14}
+\join[and]{n5,n14}{n15}
+\end{ffbd}
+\end{document}

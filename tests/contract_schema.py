@@ -242,7 +242,10 @@ def _metrics(value, errors):
             continue
         for ident, dimensions in records.items():
             p = f"Metrics.{key}.{ident}"
-            _id(ident, p, errors, key == "by_text_ref")
+            if key == "by_node_id":
+                _node_id(ident, p, errors)
+            else:
+                _id(ident, p, errors, key == "by_text_ref")
             if _obj(dimensions, p, errors, required):
                 for field, dimension in dimensions.items():
                     if field.endswith("_sp"):

@@ -21,9 +21,14 @@
       "visual_prompt": "Can the four forward steps and two notes be read in order with regular spacing?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/basic-chain.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "agent_visual_review": {
+        "rating": "pass",
+        "notes": "Primary row now starts with four blocks. Connected return to the finish; two readable notes.",
+        "date": "2026-09-25"
       }
     },
     {
@@ -54,9 +59,14 @@
       "visual_prompt": "Are the three branch groups, feedback loop, conditions, and alternating rows understandable?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/complex-branches.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "agent_visual_review": {
+        "rating": "pass",
+        "notes": "Two complete pages with matching Continuation 8.1 labels; branch conditions and notes remain readable.",
+        "date": "2026-09-25"
       }
     },
     {
@@ -79,9 +89,14 @@
       "visual_prompt": "Do both group boundaries and declared input and output ports stay clear of the bypass and loop?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/structures-feedback.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "agent_visual_review": {
+        "rating": "review",
+        "notes": "Both group boundaries, captions and routes are legible. The Valid label touches a group border; review spacing and the large note allowance.",
+        "date": "2026-09-25"
       }
     },
     {
@@ -104,9 +119,14 @@
       "visual_prompt": "Is downward flow clear with the note on the right and transparent blocks?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/custom-down.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "agent_visual_review": {
+        "rating": "pass",
+        "notes": "Clear straight downward flow, readable condition, note to the right, transparent serif blocks.",
+        "date": "2026-09-25"
       }
     },
     {
@@ -136,15 +156,20 @@
       "visual_prompt": "Can a reader follow the assigned, survivor, and completion decisions across wraps and back through the loop?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/drone-real-world.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "agent_visual_review": {
+        "rating": "pass",
+        "notes": "Alternating rows and feedback remain readable; asymmetric branch spacing is visible.",
+        "date": "2026-09-25"
       }
     },
     {
       "id": "chain-8",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/chain-8.tex",
+      "status": "source",
       "category": "simple",
       "direction": "right",
       "blocks": 8,
@@ -161,22 +186,27 @@
       "visual_prompt": "Is a straight eight-block chain readable without irregular local gaps?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/chain-8.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 8,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "branches-15-unequal",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/branches-15-unequal.tex",
+      "status": "source",
       "category": "dense",
       "direction": "right",
       "blocks": 15,
       "semantic": {
         "starts": 1,
         "finishes": 1,
-        "forward_flows": null,
+        "forward_flows": 15,
         "feedback_flows": 0,
         "split_logics": [
           "and"
@@ -190,22 +220,28 @@
       "visual_prompt": "Do unequal arm lengths remain visibly grouped without wasted space?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/branches-15-unequal.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 15,
+      "agent_visual_review": {
+        "rating": "pass",
+        "notes": "Short arm rejoins after the long serpentine arm; routing can be followed, with some long detours.",
+        "date": "2026-09-25"
       }
     },
     {
       "id": "branches-30-unequal",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/branches-30-unequal.tex",
+      "status": "source",
       "category": "dense",
       "direction": "down",
       "blocks": 30,
       "semantic": {
         "starts": 1,
         "finishes": 1,
-        "forward_flows": null,
+        "forward_flows": 31,
         "feedback_flows": 0,
         "split_logics": [
           "or",
@@ -221,22 +257,28 @@
       "visual_prompt": "Do the long and short arms retain clear grouping across vertical bands?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/branches-30-unequal.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 30,
+      "agent_visual_review": {
+        "rating": "review",
+        "notes": "Dense vertical bands have tight bends and several long arm routes. Human branch-clarity review is required.",
+        "date": "2026-09-25"
       }
     },
     {
       "id": "joins-feedback-42",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/joins-feedback-42.tex",
+      "status": "source",
       "category": "dense",
       "direction": "right",
       "blocks": 42,
       "semantic": {
         "starts": 1,
         "finishes": 1,
-        "forward_flows": null,
+        "forward_flows": 44,
         "feedback_flows": 3,
         "split_logics": [
           "and",
@@ -254,22 +296,28 @@
       "visual_prompt": "Are several joins and feedback loops distinguishable without confusing crossings?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/joins-feedback-42.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 42,
+      "agent_visual_review": {
+        "rating": "review",
+        "notes": "First page inspected: some unrelated routes appear to share a corridor near Step 7. Review all pages for ambiguous merging before release.",
+        "date": "2026-09-25"
       }
     },
     {
       "id": "dense-text-conditions",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/dense-text-conditions.tex",
+      "status": "source",
       "category": "annotated",
       "direction": "right",
       "blocks": 12,
       "semantic": {
         "starts": 1,
         "finishes": 1,
-        "forward_flows": null,
+        "forward_flows": 12,
         "feedback_flows": 1,
         "split_logics": [
           "or"
@@ -283,22 +331,27 @@
       "visual_prompt": "Can every long condition and note be read near its owner without overlap or distant displacement?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/dense-text-conditions.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 12,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "group-across-wrap",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/group-across-wrap.tex",
+      "status": "source",
       "category": "structured",
       "direction": "right",
       "blocks": 14,
       "semantic": {
         "starts": 1,
         "finishes": 1,
-        "forward_flows": null,
+        "forward_flows": 13,
         "feedback_flows": 0,
         "split_logics": [],
         "join_logics": [],
@@ -308,76 +361,121 @@
       "visual_prompt": "Does a structure spanning two serpentine rows retain membership and clear boundary ports?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/group-across-wrap.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 14,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "columns-hard-conflict",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/columns-hard-conflict.tex",
+      "status": "source",
       "category": "invalid-constraint",
       "direction": "right",
       "blocks": 8,
       "semantic": {
-        "expected_diagnostic": "hard-constraint-conflict",
+        "expected_diagnostic": "no-feasible-rows",
         "competing_constraints": [
           "max-columns",
-          "endrow"
-        ]
+          "endrow",
+          "measured-width"
+        ],
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 7,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
-      "visual_prompt": "Check that the diagnostic names both constraints and the affected region.",
+      "visual_prompt": "Does the measured-width diagnostic name the affected nodes and retained hard column/row constraints?",
       "geometry_check_profile": "standard",
       "visual_review": {
         "reference": null,
         "rating": null,
         "notes": null
+      },
+      "source_blocks": 8,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "columns-soft",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/columns-soft.tex",
+      "status": "source",
       "category": "wrapped",
       "direction": "right",
       "blocks": 8,
       "semantic": {
         "max_columns": 5,
         "strength": "strong",
-        "expected_diagnostic": null
+        "expected_diagnostic": null,
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 7,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Does exceeding the preferred column count improve readability for a clear reason?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/columns-soft.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 8,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "rowbreak-hard-soft",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/rowbreak-hard-soft.tex",
+      "status": "source",
       "category": "wrapped",
       "direction": "right",
       "blocks": 12,
       "semantic": {
         "hard_endrows": 1,
-        "soft_endrows": 1
+        "soft_endrows": 1,
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 11,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Is the hard break exact and any moved soft break understandable?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/rowbreak-hard-soft.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 12,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "annotations-eight",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/annotations-eight.tex",
+      "status": "source",
       "category": "annotated",
       "direction": "right",
       "blocks": 8,
@@ -391,20 +489,33 @@
           "bottom-left",
           "bottom-center",
           "bottom-right"
-        ]
+        ],
+        "starts": 0,
+        "finishes": 0,
+        "forward_flows": 0,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 8,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Are all eight explicit positions honored with readable notes and nearby routes?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/annotations-eight.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 8,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "scale-explicit",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/scale-explicit.tex",
+      "status": "source",
       "category": "simple",
       "direction": "right",
       "blocks": 8,
@@ -413,88 +524,153 @@
           0.9,
           1.0,
           1.2
-        ]
+        ],
+        "starts": 3,
+        "finishes": 3,
+        "forward_flows": 21,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Do text, strokes, boxes, notes, and spacing scale uniformly with no page fitting?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/scale-explicit.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 24,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "large-64-single",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/large-64-single.tex",
+      "status": "source",
       "category": "dense",
       "direction": "right",
       "blocks": 64,
       "semantic": {
         "multipage": false,
-        "expected_diagnostic": null
+        "expected_diagnostic": null,
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 63,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Is the large single-page result honest about available space and free of severe compression?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/large-64-single.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 64,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "large-64-multipage",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/large-64-multipage.tex",
+      "status": "source",
       "category": "multipage",
       "direction": "right",
       "blocks": 64,
       "semantic": {
         "multipage": true,
-        "minimum_pages": 2
+        "minimum_pages": 2,
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 63,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Can every continuation be followed across pages and does each page restart in the primary direction?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/large-64-multipage.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 64,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "irregular-gap-adversary",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/irregular-gap-adversary.tex",
+      "status": "source",
       "category": "dense",
       "direction": "right",
       "blocks": 24,
       "semantic": {
-        "expected_quality_focus": "spacing-variance"
+        "expected_quality_focus": "spacing-variance",
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 23,
+        "feedback_flows": 1,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Do nearby gaps keep a steady rhythm when one route requires extra clearance?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/irregular-gap-adversary.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 24,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     },
     {
       "id": "displaced-label-adversary",
-      "source": null,
-      "status": "planned",
+      "source": "tests/fixtures/visual/displaced-label-adversary.tex",
+      "status": "source",
       "category": "annotated",
       "direction": "down",
       "blocks": 16,
       "semantic": {
-        "expected_quality_focus": "label-displacement"
+        "expected_quality_focus": "label-displacement",
+        "starts": 1,
+        "finishes": 1,
+        "forward_flows": 15,
+        "feedback_flows": 0,
+        "structures": 0,
+        "annotations": 0,
+        "split_logics": [],
+        "join_logics": []
       },
       "visual_prompt": "Can each condition be matched to its edge without scanning far away?",
       "geometry_check_profile": "standard",
       "visual_review": {
-        "reference": null,
+        "reference": "tests/fixtures/references/displaced-label-adversary.pdf",
         "rating": null,
-        "notes": null
+        "notes": "Final human visual sign-off reserved to the user on 2026-09-25."
+      },
+      "source_blocks": 16,
+      "agent_visual_review": {
+        "rating": null,
+        "notes": "Rendered and checked automatically; agent visual review not completed before requested wrap-up."
       }
     }
   ],

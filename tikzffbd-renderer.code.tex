@@ -39,12 +39,12 @@
 \cs_new_protected:Npn \ffbdSceneStructureText #1#2#3#4#5#6 {
   \tl_if_blank:nF {#5} {
     \node[ffbd/structure-type,anchor=north~west]
-      at (\int_eval:n {#1+65536}sp,\int_eval:n {#2+#4-65536}sp)
+      at (\int_eval:n {#1+65536}sp,\int_eval:n {#2+65536}sp)
       {\ffbdTextByRef{#5}};
   }
   \tl_if_blank:nF {#6} {
     \node[ffbd/structure-info,anchor=south~east]
-      at (\int_eval:n {#1+#3-65536}sp,\int_eval:n {#2+65536}sp)
+      at (\int_eval:n {#1+#3-65536}sp,\int_eval:n {#2+#4-65536}sp)
       {\ffbdTextByRef{#6}};
   }
 }
@@ -57,9 +57,13 @@
     at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp)
     {\textbf{\ffbdTextByRef{#5}:}~\ffbdTextByRef{#6}};
 }
+\cs_new_protected:Npn \ffbdSceneStructureLabel #1#2#3#4#5#6 {
+  \node[ffbd/structure-#1,anchor=center,outer~sep=0pt]
+    at (\fp_eval:n {#2+#4/2}sp,\fp_eval:n {#3+#5/2}sp)
+    {\ffbdTextByRef{#6}};
+}
 \cs_new_protected:Npn \ffbdSceneLabel #1#2#3#4#5 {
-  \node[ffbd/edge-label,align=center,
-    text~width=\dim_eval:n {#3sp-2.4pt}]
+  \node[ffbd/edge-label,align=center]
     at (\fp_eval:n {#1+#3/2}sp,\fp_eval:n {#2+#4/2}sp)
     {\ffbdTextByRef{#5}};
 }

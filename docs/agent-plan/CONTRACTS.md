@@ -217,3 +217,14 @@ it in its handoff; it must not change the three mandatory arguments.
 
 Future high-level controls, such as keep-together groups, use the same
 `Constraint` strength mechanism. Avoid exposing coordinates or bend points.
+
+## Additive integration metadata (2026-09-25)
+
+`Regions.flows[].condition_ref` supports measured label spacing. Geometry may
+include `structure_texts[]` with measured `{id, structure_id, role, text_ref,
+page_index, rect}` records and `structure_owner_by_id` for split group rectangles.
+PageScene carries the page-local versions; the renderer consumes their exact
+rectangles. Older mock Scenes without them retain the existing caption fallback.
+`Scene.quality` additionally reports `router_calls`, total `router_work`, and
+`selected_router_work`. Failed router diagnostics include work used and budget.
+These additions preserve all version 1 field meanings and public entry points.

@@ -111,7 +111,9 @@ local location={}
 for ri,row in ipairs(rows(plans[1])) do for _,id in ipairs(row.ordered_node_ids) do location[id]=ri end end
 for _,id in ipairs(parallel.member_ids) do check(location[id]==location[parallel.member_ids[1]],"branch intact") end
 spec=model.inspect(spec); spec.options.multipage=true
-frame.content_height_sp=180; frame.page_height_sp=180
+-- Three measured 80-sp branch lanes plus two 30-sp gaps need 300 sp;
+-- reserve the planner's 80-sp page gutters as well.
+frame.content_height_sp=400; frame.page_height_sp=400
 plans=run(spec,metrics,frame)
 local branch_page
 for pi,page in ipairs(plans[1].pages) do
@@ -176,7 +178,7 @@ check(count_pages>1,"oversized semantic region actually continued")
 local markers=0
 for _,page in ipairs(plans[1].pages) do
   for _,marker in ipairs(page.continuation_markers) do
-    check(marker.label:find("Continued:",1,true)==1,"continuation label")
+    check(marker.label:match("^Continuation %d+%.%d+$")~=nil,"reader-facing continuation label")
     markers=markers+1
   end
 end

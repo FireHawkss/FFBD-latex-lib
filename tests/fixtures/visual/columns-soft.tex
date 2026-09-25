@@ -1,0 +1,23 @@
+\documentclass{article}
+\usepackage[a4paper,landscape,margin=16mm]{geometry}
+\usepackage{tikzffbd}
+\pagestyle{empty}
+\begin{document}
+\begin{ffbd}[max-columns=5,max-columns-strength=soft]
+\start{n1}{Begin}
+\function{n2}{Step 1}
+\function{n3}{Step 2}
+\function{n4}{Step 3}
+\function{n5}{Step 4}
+\function{n6}{Step 5}
+\function{n7}{Step 6}
+\finish{n8}{Complete}
+\flow{n1}{n2}
+\flow{n2}{n3}
+\flow{n3}{n4}
+\flow{n4}{n5}
+\flow{n5}{n6}
+\flow{n6}{n7}
+\flow{n7}{n8}
+\end{ffbd}
+\end{document}

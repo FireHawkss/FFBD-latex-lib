@@ -165,11 +165,14 @@ function M.render()
     return
   end
   last.Scene = scene
-  texio.write_nl("log", string.format("tikzffbd scene: pages=%d candidates=%d/%d budget_exhausted=%s",
+  texio.write_nl("log", string.format("tikzffbd scene: pages=%d candidates=%d/%d budget_exhausted=%s router_work=%d router_calls=%d",
     #scene.pages,scene.quality.candidates_evaluated,scene.quality.search_budget,
-    tostring(scene.quality.budget_exhausted)))
+    tostring(scene.quality.budget_exhausted),scene.quality.router_work,scene.quality.router_calls))
   for _,d in ipairs(scene.diagnostics or {}) do
-    if d.severity == "warning" then texio.write_nl("term and log","tikzffbd warning [" .. d.code .. "]: " .. d.message) end
+    if d.severity == "warning" then
+      texio.write_nl("term and log","tikzffbd warning [" .. d.code .. "]: " .. d.message)
+      for _,action in ipairs(d.suggested_actions or {}) do texio.write_nl("term and log",action) end
+    end
   end
   tex.sprint(require("tikzffbd-renderer").render(scene,nil,
     require("tikzffbd-renderer").styles_from_spec(last.Spec)))

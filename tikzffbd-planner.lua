@@ -77,8 +77,27 @@ function M.plan(regions, metrics, constraints, frame)
   local style = metrics.style_clearances or {}
   local route_gap = math.max(math.floor(median * 0.30 + 0.5),
     style.route_gap_sp or 0, 1)
+  local label_extent,label_cross=0,0
+  local ranks={}
+  for _,id in ipairs(order) do
+    ranks[id]=ranks[id] or 1
+    for _,flow in ipairs(regions.flows or {}) do
+      if flow.kind=="forward" and flow.source==id then
+        ranks[flow.target]=math.max(ranks[flow.target] or 1,ranks[id]+1)
+      end
+    end
+  end
+  for _,flow in ipairs(regions.flows or {}) do
+    local size=flow.condition_ref and (metrics.by_text_ref or {})[flow.condition_ref]
+    if size and flow.kind=="forward" and ranks[flow.target]==ranks[flow.source]+1 then
+      label_extent=math.max(label_extent,size[primary]+(primary=="height_sp" and (size.depth_sp or 0) or 0))
+      label_cross=math.max(label_cross,size[cross]+(cross=="height_sp" and (size.depth_sp or 0) or 0))
+    end
+  end
+  route_gap=math.max(route_gap,math.ceil(primary=="height_sp" and label_extent*2
+    or math.min(label_extent,median/2)*1.5))
   local row_gap = math.max(math.floor(median * 0.40 + 0.5),
-    style.row_gap_sp or 0, 1)
+    style.row_gap_sp or 0, math.ceil(label_cross*2), 1)
   -- Analysis carries no annotation owners. Metrics may supply them as an
   -- additive map; absent ownership uses a conservative global allowance.
   local global_note, global_note_primary = 0, 0
@@ -94,6 +113,9 @@ function M.plan(regions, metrics, constraints, frame)
     if finite_positive(m.header_width_sp) then
       group_header_primary=math.max(group_header_primary,m.header_width_sp)
     end
+  end
+  if next(metrics.by_structure_id or {}) then
+    row_gap=math.max(row_gap,route_gap+2*group_header_cross+2*(global_note+route_gap))
   end
   local note_allowance = math.floor(math.max(global_note,group_header_cross)*0.5+0.5)
   local label_primary_allowance=math.floor(math.max(global_note_primary,group_header_primary)*0.25+0.5)
@@ -124,6 +146,13 @@ function M.plan(regions, metrics, constraints, frame)
   end
   local function cut_cost(at)
     if at == n then return 0 end
+    for _,rid in ipairs(regions.group_region_ids or {}) do
+      local lo,hi=math.huge,0
+      for _,id in ipairs(regions.regions_by_id[rid].member_ids) do
+        lo=math.min(lo,node_index[id]);hi=math.max(hi,node_index[id])
+      end
+      if lo<=at and at<hi then return 40 end
+    end
     local a, b = owner[order[at]], owner[order[at+1]]
     if a == b and a and regions.regions_by_id[a].kind == "parallel" then return 30 end
     if fallback[order[at]] and fallback[order[at]] == fallback[order[at+1]] then return 7 end
@@ -165,11 +194,24 @@ function M.plan(regions, metrics, constraints, frame)
             and {breaks[stop].id} or {}
           local preferred = breaks[stop] and breaks[stop].strength ~= "hard"
             and {breaks[stop].id} or {}
+          local local_rank,heights={},{}
+          for _,id in ipairs(ids) do
+            local rank=1
+            for _,flow in ipairs(regions.flows or {}) do
+              if flow.kind=="forward" and flow.target==id and local_rank[flow.source] then
+                rank=math.max(rank,local_rank[flow.source]+1)
+              end
+            end
+            local_rank[id]=rank
+            heights[rank]=(heights[rank] and heights[rank]+math.max(route_gap,style.branch_gap_sp or 0) or 0)
+              +metrics.by_node_id[id][cross]
+          end
+          local actual_cross=0;for _,height in pairs(heights) do actual_cross=math.max(actual_cross,height) end
           local row = {index=#state.rows+1, direction_sign=(#state.rows%2==0) and 1 or -1,
             ordered_region_ids=rids, ordered_node_ids=ids,
             forced_break_ids=forced, preferred_break_ids=preferred,
             estimated_primary_sp=math.floor(used+label_primary_allowance+0.5),
-            estimated_cross_sp=math.floor(high+note_allowance+0.5)}
+            estimated_cross_sp=math.floor(actual_cross+note_allowance+0.5)}
           local missed_soft = 0
           for i=start,stop-1 do if breaks[i] and breaks[i].strength ~= "hard" then missed_soft=missed_soft+1 end end
           local column_cost = soft_columns and math.max(0,slots-soft_columns) or 0
@@ -178,9 +220,11 @@ function M.plan(regions, metrics, constraints, frame)
             score=state.score+cut_cost(stop)+missed_soft*10+column_cost*8+unused*2,
             signature=state.signature .. string.format("%04d,",stop)}
           next_state.rows[#next_state.rows+1]=row
+          if not multipage or row.estimated_cross_sp+2*row_gap<=cross_limit then
           local bucket=dp[stop] or {}; dp[stop]=bucket
           bucket[#bucket+1]=next_state
           if #bucket > BEAM then stats.pruned.beam=stats.pruned.beam+1; sort_trim(bucket,BEAM) end
+          else stats.pruned.page=stats.pruned.page+1 end
         end
       end
     end
@@ -209,7 +253,7 @@ function M.plan(regions, metrics, constraints, frame)
       end
       page.continuation_ids={}; page.continuation_markers={}
     end
-    for _, flow in ipairs(regions.flows or {}) do
+    for flow_number, flow in ipairs(regions.flows or {}) do
       local source_page, target_page = node_page[flow.source], node_page[flow.target]
       if source_page and target_page and source_page ~= target_page then
         local first, last = math.min(source_page,target_page), math.max(source_page,target_page)
@@ -222,10 +266,10 @@ function M.plan(regions, metrics, constraints, frame)
           local earlier={id=earlier_is_source and out_id or in_id,
             counterpart_id=earlier_is_source and in_id or out_id,
             semantic_flow_id=flow.id,role=earlier_is_source and "out" or "in",
-            text_ref=text_ref,label="Continued: " .. flow.id}
+            text_ref=text_ref,label="Continuation " .. flow_number .. "." .. ordinal}
           local later={id=earlier.counterpart_id,counterpart_id=earlier.id,
             semantic_flow_id=flow.id,role=earlier_is_source and "in" or "out",
-            text_ref=text_ref,label="Continued: " .. flow.id}
+            text_ref=text_ref,label="Continuation " .. flow_number .. "." .. ordinal}
           local a,b=pages[pi],pages[pi+1]
           a.continuation_ids[#a.continuation_ids+1]=earlier.id
           b.continuation_ids[#b.continuation_ids+1]=later.id

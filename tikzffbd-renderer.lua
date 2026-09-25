@@ -53,7 +53,7 @@ function M.render(scene, text_registry, styles)
     add(cmd("Bounds",rect_args(b)))
     -- Background group fills precede paths; text is always placed last.
     for _,id in ipairs(sorted_keys(page.structure_rects)) do
-      local s = structures[id] or {}
+      local s = structures[(page.structure_owner_by_id or {})[id] or id] or {}
       add(cmd("Structure",s.style or "plain",rect_args(page.structure_rects[id])))
     end
     for _,id in ipairs(sorted_keys(page.flow_paths)) do
@@ -70,10 +70,16 @@ function M.render(scene, text_registry, styles)
       add(cmd("Node",node_kind(n),rect_args(page.node_rects[id]),check(n.text_ref),n.number or "",
         n.logic and n.logic:upper() or ""))
     end
+    if page.structure_texts then
+      for _,item in ipairs(page.structure_texts) do
+        add(cmd("StructureLabel",item.role,rect_args(item.rect),check(item.text_ref)))
+      end
+    else
     for _,id in ipairs(sorted_keys(page.structure_rects)) do
-      local s = structures[id] or {}
+      local s = structures[(page.structure_owner_by_id or {})[id] or id] or {}
       local r = page.structure_rects[id]
       add(cmd("StructureText",rect_args(r),check(s.type_ref),check(s.info_ref)))
+    end
     end
     for _,n in ipairs(page.annotations or {}) do
       add(cmd("Annotation",rect_args(n.rect),check(n.type_ref),check(n.body_ref)))

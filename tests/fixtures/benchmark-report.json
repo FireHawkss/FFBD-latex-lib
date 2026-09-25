@@ -1,0 +1,154 @@
+[
+  {
+    "id": "benchmark-10",
+    "source": "tests/fixtures/performance/benchmark-10-source.tex",
+    "passed": true,
+    "errors": [],
+    "runs": [
+      {
+        "seconds": 1.569,
+        "peak_rss_kib": 158420
+      },
+      {
+        "seconds": 1.569,
+        "peak_rss_kib": 158440
+      }
+    ],
+    "tex_overflow": false,
+    "pages": 1,
+    "quality": [
+      {
+        "budget_exhausted": false,
+        "candidates_evaluated": 8,
+        "router_calls": 8,
+        "router_work": 156,
+        "search_budget": 64,
+        "selected_router_work": 18,
+        "vector": [
+          0,
+          0,
+          0,
+          1,
+          89746738123108.0,
+          14234602,
+          0
+        ]
+      }
+    ],
+    "diagnostics": []
+  },
+  {
+    "id": "benchmark-30",
+    "source": "tests/fixtures/performance/benchmark-30-source.tex",
+    "passed": true,
+    "errors": [],
+    "runs": [
+      {
+        "seconds": 2.292,
+        "peak_rss_kib": 166800
+      },
+      {
+        "seconds": 2.338,
+        "peak_rss_kib": 166660
+      }
+    ],
+    "tex_overflow": false,
+    "pages": 1,
+    "quality": [
+      {
+        "budget_exhausted": false,
+        "candidates_evaluated": 8,
+        "router_calls": 8,
+        "router_work": 486,
+        "search_budget": 64,
+        "selected_router_work": 58,
+        "vector": [
+          0,
+          0,
+          0,
+          5,
+          397391097699470.0,
+          46770834,
+          0
+        ]
+      }
+    ],
+    "diagnostics": []
+  },
+  {
+    "id": "benchmark-50",
+    "source": "tests/fixtures/performance/benchmark-50-source.tex",
+    "passed": true,
+    "errors": [],
+    "runs": [
+      {
+        "seconds": 3.172,
+        "peak_rss_kib": 173080
+      },
+      {
+        "seconds": 3.225,
+        "peak_rss_kib": 163448
+      }
+    ],
+    "tex_overflow": false,
+    "pages": 1,
+    "quality": [
+      {
+        "budget_exhausted": false,
+        "candidates_evaluated": 8,
+        "router_calls": 8,
+        "router_work": 808,
+        "search_budget": 64,
+        "selected_router_work": 98,
+        "vector": [
+          0,
+          0,
+          0,
+          9,
+          705025979568190.0,
+          79307066,
+          0
+        ]
+      }
+    ],
+    "diagnostics": []
+  },
+  {
+    "id": "benchmark-64",
+    "source": "tests/fixtures/performance/benchmark-64-source.tex",
+    "passed": true,
+    "errors": [],
+    "runs": [
+      {
+        "seconds": 3.791,
+        "peak_rss_kib": 171008
+      },
+      {
+        "seconds": 3.817,
+        "peak_rss_kib": 171308
+      }
+    ],
+    "tex_overflow": false,
+    "pages": 2,
+    "quality": [
+      {
+        "budget_exhausted": false,
+        "candidates_evaluated": 8,
+        "router_calls": 8,
+        "router_work": 1072,
+        "search_budget": 64,
+        "selected_router_work": 134,
+        "vector": [
+          0,
+          0,
+          9,
+          11,
+          3.4378299712686e+29,
+          144481206,
+          0
+        ]
+      }
+    ],
+    "diagnostics": []
+  }
+]

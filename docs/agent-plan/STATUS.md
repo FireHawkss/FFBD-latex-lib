@@ -18,4 +18,15 @@ handoffs. A task is `complete` only with its acceptance evidence in `handoffs/NN
 | 10 TikZ renderer | complete | 01, 03; final integration 09 | [10.md](handoffs/10.md) |
 | 11 Integration and release gates | blocked | 01–10 | [11.md](handoffs/11.md) |
 
-The production drawing pass now consumes solved Scenes. Part 09 visual acceptance remains blocked, and part 11 is blocked by three failing existing examples, incomplete visual readiness evidence, and an unverified Overleaf upload. See the reproducible diagnostics and release measurements in `handoffs/11.md`.
+Local repair pass completed on 2026-09-25: all existing examples compile and all
+20 catalogue checks pass (19 rendered documents plus one expected diagnostic).
+Labels, candidate allocation, group text/notes, measured branch heights, page
+origins and continuation labels were repaired. The catalogue now has sources,
+PDF references, deterministic geometry checks and timing/router-work results.
+
+Parts 09 and 11 remain **blocked on final visual acceptance**, not the previous
+compilation failures. Human visual sign-off is explicitly reserved to the user;
+dense shared corridors and branch clarity still need review, and readiness
+proportions cannot yet be claimed. Overleaf verification is deferred to the user
+at their request and was not performed. See `handoffs/09.md`, `handoffs/11.md`,
+and [the review checklist](../../tests/fixtures/REVIEW.md).

@@ -209,13 +209,24 @@ function M.place(plan,spec,metrics,constraints)
   for _,measured in pairs(metrics.by_structure_id or {}) do
     max_header=math.max(max_header,measured.header_height_sp or 0)
   end
-  local page_margin=group_pad+max_header
+  local group_notes={};local max_group_note=0
+  for _,s in ipairs(spec.structures or {}) do
+    local members={};for _,id in ipairs(s.member_ids) do members[id]=true end
+    for _,note in ipairs(spec.annotations or {}) do
+      if members[note.owner_id] then
+        local size=(metrics.by_annotation_id or {})[note.id]
+        if size then group_notes[s.id]=math.max(group_notes[s.id] or 0,size.height_sp+route_gap) end
+      end
+    end
+    max_group_note=math.max(max_group_note,group_notes[s.id] or 0)
+  end
+  local page_margin=group_pad+max_header+max_group_note
   local regions=analysis.analyze(spec)
   local keys=arm_keys(regions)
   local geometry={environment_id=plan.environment_id,node_rects_by_id={},
     group_rects_by_id={},row_axes={},reserved_channels={},provisional_ports={},
     group_rect_page_by_id={},page_extents_by_index={},group_boundary_ports={},
-    continuation_markers_by_page={},
+    continuation_markers_by_page={},structure_texts={},structure_owner_by_id={},
     spacing_stats={route_gap_sp=route_gap,lane_gap_sp=lane_gap,row_gap_sp=row_gap,
       group_padding_sp=group_pad}}
   local node_page,node_row={},{}
@@ -340,12 +351,29 @@ function M.place(plan,spec,metrics,constraints)
       local key=#pages==1 and s.id or ("@region/group-"..s.id.."-page-"..p)
       local measured=(metrics.by_structure_id or {})[s.id] or {}
       local header=measured.header_height_sp or 0
+      local info=(metrics.by_text_ref or {})[s.info_ref] or {}
+      local footer=(info.height_sp or 0)+(info.depth_sp or 0)
+      local note_space=group_notes[s.id] or 0
       local width=math.max(b[3]-b[1]+2*group_pad,
         (measured.header_width_sp or 0)+2*group_pad,
         (measured.info_width_sp or 0)+2*group_pad)
-      geometry.group_rects_by_id[key]=rect(b[1]-group_pad,b[2]-group_pad-header,
-        width,b[4]-b[2]+2*group_pad+header)
+      geometry.group_rects_by_id[key]=rect(b[1]-group_pad,b[2]-group_pad-header-note_space,
+        width,b[4]-b[2]+2*group_pad+header+footer+2*note_space)
       geometry.group_rect_page_by_id[key]=p
+      geometry.structure_owner_by_id[key]=s.id
+      local gr=geometry.group_rects_by_id[key]
+      for _,role in ipairs({"type","info"}) do
+        local ref=s[role.."_ref"]
+        local size=ref and (metrics.by_text_ref or {})[ref]
+        if size then
+          local h=size.height_sp+(size.depth_sp or 0)
+          geometry.structure_texts[#geometry.structure_texts+1]={
+            id=key.."-"..role,structure_id=key,role=role,text_ref=ref,page_index=p,
+            rect=rect(gr.x_sp+group_pad/2,
+              role=="type" and gr.y_sp+group_pad/2 or gr.y_sp+gr.height_sp-h-group_pad/2,
+              size.width_sp,h)}
+        end
+      end
       local members={}
       for _,id in ipairs(s.member_ids) do members[id]=true end
       for _,id in ipairs(node_ids) do

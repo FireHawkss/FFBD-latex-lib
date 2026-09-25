@@ -22,11 +22,33 @@ end
 local function point_rect(p)
   return {x_sp=p.x_sp,y_sp=p.y_sp,width_sp=0,height_sp=0}
 end
+local function copy(value)
+  if type(value)~="table" then return value end
+  local out={};for k,v in pairs(value) do out[k]=copy(v) end;return out
+end
+local function normalize_pages(pages)
+  -- A whole-picture translation is free: page fitting depends on its measured
+  -- extent, not the arbitrary origin selected by placement. Copy first because
+  -- note candidates and geometry are shared by later search attempts.
+  pages=copy(pages)
+  for _,page in ipairs(pages) do
+    local dx,dy=1-page.bounding_rect.x_sp,1-page.bounding_rect.y_sp
+    local function shift(p) p.x_sp=p.x_sp+dx;p.y_sp=p.y_sp+dy end
+    for _,r in pairs(page.node_rects) do shift(r) end
+    for _,r in pairs(page.structure_rects) do shift(r) end
+    for _,items in ipairs({page.annotations,page.edge_labels,page.continuation_markers,page.structure_texts}) do
+      for _,item in ipairs(items) do shift(item.rect) end
+    end
+    for _,path in pairs(page.flow_paths) do for _,p in ipairs(path.points) do shift(p) end end
+    shift(page.bounding_rect)
+  end
+  return pages
+end
 local function pages_for(plan,g,routes,notes,labels,metrics)
   local pages={}
   for i=1,#plan.pages do
     pages[i]={node_rects={},structure_rects={},annotations={},flow_paths={},
-      edge_labels={},continuation_markers={},bounding_rect=nil}
+      edge_labels={},continuation_markers={},structure_texts={},structure_owner_by_id={},bounding_rect=nil}
   end
   local owners=annotations.page_of(g)
   local function add(p,r) pages[p].bounding_rect=union(pages[p].bounding_rect,r) end
@@ -36,6 +58,11 @@ local function pages_for(plan,g,routes,notes,labels,metrics)
   for id,r in pairs(g.group_rects_by_id) do
     local p=(g.group_rect_page_by_id or {})[id] or 1
     pages[p].structure_rects[id]=r;add(p,r)
+    pages[p].structure_owner_by_id[id]=(g.structure_owner_by_id or {})[id] or id
+  end
+  for _,item in ipairs(g.structure_texts or {}) do
+    local p=item.page_index
+    pages[p].structure_texts[#pages[p].structure_texts+1]=item;add(p,item.rect)
   end
   for _,n in ipairs(notes) do
     local p=n.page_index;pages[p].annotations[#pages[p].annotations+1]=n;add(p,n.rect)
@@ -92,13 +119,18 @@ local function geometry_valid(scene,spec,frame)
     for _,n in ipairs(page.annotations) do objects[#objects+1]={id=n.id,rect=n.rect} end
     for _,l in ipairs(page.edge_labels) do objects[#objects+1]={id=l.flow_id,rect=l.rect} end
     for _,m in ipairs(page.continuation_markers) do objects[#objects+1]={id=m.id,rect=m.rect} end
+    for _,item in ipairs(page.structure_texts or {}) do objects[#objects+1]={id=item.id,rect=item.rect} end
     for i=1,#objects do for j=i+1,#objects do
       if annotations.overlap(objects[i].rect,objects[j].rect) then
         return diag("text-overlap",{objects[i].id,objects[j].id},
           "Text or block rectangles overlap",{"Try another row plan or annotation position"})
       end
     end end
-    for _,n in ipairs(page.annotations) do
+    local text_objects={}
+    for _,items in ipairs({page.annotations,page.edge_labels,page.structure_texts or {}}) do
+      for _,item in ipairs(items) do text_objects[#text_objects+1]=item end
+    end
+    for _,n in ipairs(text_objects) do
       for _,path in pairs(page.flow_paths) do
         if annotations.hits_path(n.rect,path.points,0) then
           return diag("annotation-route-overlap",{n.id},"Flow crosses annotation",
@@ -126,7 +158,8 @@ function M.solve(spec,metrics,frame)
   if not plans then return nil,errors end
   local attempts,best,best_vector,last=0,nil,nil,nil
   local exhausted=false
-  for _,plan in ipairs(plans) do
+  local router_work,router_calls=0,0
+  for plan_index,plan in ipairs(plans) do
     local g,issue=placement.place(plan,spec,metrics,cs)
     if not g then last=issue else
       local states={{}}
@@ -161,10 +194,19 @@ function M.solve(spec,metrics,frame)
           break
         end
       end
-      for _,notes in ipairs(states) do
+      -- Reserve attempts for every structural alternative. Dense annotation
+      -- combinations on the first plan must not starve later row plans.
+      local quota=math.max(1,math.floor((M.SEARCH_BUDGET-attempts)/(#plans-plan_index+1)))
+      local used=0
+      if #states>quota then exhausted=true end
+      for state_index=1,math.min(#states,quota) do
+        local notes=states[1+math.floor((state_index-1)*#states/math.min(#states,quota))]
         if attempts>=M.SEARCH_BUDGET then exhausted=true;break end
         attempts=attempts+1
+        used=used+1
         local routes;routes,issue=router.route(g,spec,notes)
+        router_calls=router_calls+1
+        router_work=router_work+(routes and routes.costs.work_used or issue and issue.work_used or 0)
         if not routes then last=issue else
           local labels,unplaced=annotations.labels(spec,metrics,g,routes,notes)
           if not labels then
@@ -173,7 +215,7 @@ function M.solve(spec,metrics,frame)
           else
             local pages;pages,issue=pages_for(plan,g,routes,notes,labels,metrics)
             if not pages then last=issue else
-              local scene={environment_id=spec.environment_id,pages=pages,diagnostics={},
+              local scene={environment_id=spec.environment_id,pages=normalize_pages(pages),diagnostics={},
                 scale=frame.scale,plan=plan}
               issue=geometry_valid(scene,spec,frame)
               if not issue then
@@ -181,12 +223,15 @@ function M.solve(spec,metrics,frame)
                   spec=spec,complete=true},cs)
                 for _,d in ipairs(violations) do if d.severity=="error" then issue=d;break end end
                 if not issue then
-                  for _,n in ipairs(notes) do
+                  for _,page in ipairs(scene.pages) do
+                  for _,n in ipairs(page.annotations) do
                     for _,a in ipairs(spec.annotations or {}) do
                       if n.id==a.id then n.preferred_position=a.preferred_position end
                     end
                   end
+                  end
                   scene.quality={vector=quality.vector(scene,plan,g,routes,costs),
+                    selected_router_work=routes.costs.work_used,
                     search_budget=M.SEARCH_BUDGET,candidates_evaluated=attempts,
                     budget_exhausted=false}
                   if quality.less(scene.quality.vector,best_vector) then
@@ -203,11 +248,24 @@ function M.solve(spec,metrics,frame)
     if attempts>=M.SEARCH_BUDGET then exhausted=true;break end
   end
   if best then
+    best.quality.router_work=router_work
+    best.quality.router_calls=router_calls
     best.quality.candidates_evaluated=attempts
     best.quality.budget_exhausted=exhausted
     if exhausted then best.diagnostics[1]={code="solver-budget-exhausted",severity="warning",
       object_ids={},constraint_ids={},message="Search budget exhausted; returning best valid candidate",
       suggested_actions={"Reduce diagram congestion or split the diagram"}} end
+    if not (spec.options or {}).multipage then
+      for _,page in ipairs(best.pages) do
+        if page.bounding_rect.width_sp*frame.scale>frame.content_width_sp
+            or page.bounding_rect.height_sp*frame.scale>frame.content_height_sp then
+          best.diagnostics[#best.diagnostics+1]={code="single-page-overflow",severity="warning",
+            object_ids={},constraint_ids={},message="Solved diagram exceeds the content area at the explicit scale",
+            suggested_actions={"Use landscape, enable multipage, or choose an explicit scale"}}
+          break
+        end
+      end
+    end
     return best
   end
   if exhausted then
